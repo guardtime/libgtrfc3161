@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 	if(!convert_signature(buffer, file_size, &outbuf, &file_size))
 		goto done;
 
-	if(argv[2]=="-")
+	if(strlen(argv[2])==1 && argv[2][0]=='-')
 		write(1, outbuf, file_size);
 	else {
 		if(!save_file(argv[2], outbuf, file_size))
