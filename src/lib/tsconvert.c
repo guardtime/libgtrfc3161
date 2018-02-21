@@ -1,17 +1,11 @@
-//#include <stdlib.h>
-//#include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
 
 #include <ksi/ksi.h>
 #include <ksi/types.h>
-#include <ksi/signature.h>
-#include <ksi/signature_impl.h>
-#include <ksi/publicationsfile_impl.h>
-#include <ksi/internal.h>
 #include <ksi/crc32.h>
 #include <ksi/hashchain.h>
-#include <ksi/hashchain_impl.h>
+#include <ksi/signature_builder.h>
 
 #include "parseasn1.h"
 
@@ -172,27 +166,6 @@ done:
 	return true;
 }
 
-
-//Temporary accessors until KSI API is fixed
-int KSI_Signature_new(KSI_CTX *ctx, KSI_Signature **sig);
-
-KSI_IMPLEMENT_GETTER(KSI_Signature, KSI_CalendarHashChain*, calendarChain, CalendarChain)
-KSI_IMPLEMENT_GETTER(KSI_Signature, KSI_LIST(KSI_AggregationHashChain)*, aggregationChainList, AggregationChainList)
-KSI_IMPLEMENT_GETTER(KSI_Signature, KSI_CalendarAuthRec*, calendarAuthRec, CalendarAuthRecord)
-KSI_IMPLEMENT_GETTER(KSI_Signature, KSI_AggregationAuthRec*, aggregationAuthRec, AggregationAuthRecord)
-KSI_IMPLEMENT_GETTER(KSI_Signature, KSI_RFC3161*, rfc3161, RFC3161)
-
-KSI_IMPLEMENT_SETTER(KSI_Signature, KSI_CalendarHashChain*, calendarChain, CalendarChain)
-KSI_IMPLEMENT_SETTER(KSI_Signature, KSI_LIST(KSI_AggregationHashChain)*, aggregationChainList, AggregationChainList)
-KSI_IMPLEMENT_SETTER(KSI_Signature, KSI_CalendarAuthRec*, calendarAuthRec, CalendarAuthRecord)
-KSI_IMPLEMENT_SETTER(KSI_Signature, KSI_PublicationRecord*, publication, PublicationRecord)
-KSI_IMPLEMENT_SETTER(KSI_Signature, KSI_RFC3161*, rfc3161, RFC3161)
-
-KSI_DEFINE_SETTER(KSI_CalendarAuthRec, KSI_PublicationData*, pubData, PublishedData);
-KSI_DEFINE_SETTER(KSI_CalendarAuthRec, KSI_PKISignedData*, signatureData, SignatureData);
-
-KSI_IMPLEMENT_GETTER(KSI_CalendarHashChain, KSI_LIST(KSI_HashChainLink)*, hashChain, HashChain);
-
 bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 {
 	if (length - pos < 3)
@@ -223,12 +196,13 @@ int get_chain_item_size(const unsigned char* chain, size_t position) {
 
 bool is_metahash(const unsigned char *chain, size_t size)
 {
-	const size_t hash_len = KSI_getHashLength(KSI_HASHALG_SHA2_224);
+	//Hash code 3 with length 28 is a hardcoded for formerly used SHA2-224
+	const size_t hash_len = 28;
 	if (size <= 0) {
 		/* No hash step. */
 		return false;
 	}
-	if (chain[0] != KSI_HASHALG_SHA2_224) {
+	if (chain[0] != 3) {
 		/* Sibling not SHA-224. */
 		return false;
 	}
@@ -300,34 +274,29 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 
 
 #define SET_OCTET_STRING(target, parent, child, data, length)  \
-	if(KSI_OctetString_new(ctx, data, length, &tmp_octet_string)!=KSI_OK) \
-		goto done; \
-	if(KSI_##parent##_set##child(target, tmp_octet_string)!=KSI_OK) \
-		goto done;
+	do { \
+		KSI_OctetString *tmp_octet_string; \
+		if(KSI_OctetString_new(ctx, data, length, &tmp_octet_string)!=KSI_OK) goto done; \
+		if(KSI_##parent##_set##child(target, tmp_octet_string)!=KSI_OK) { KSI_OctetString_free(tmp_octet_string);; goto done; } \
+	} while(0)
 
 #define SET_INTEGER(target, parent, child, value)  \
-	if(KSI_Integer_new(ctx, value, &tmp_integer)!=KSI_OK) \
-		goto done; \
-	if(KSI_##parent##_set##child(target, tmp_integer)!=KSI_OK) \
-		goto done
+	do { \
+		KSI_Integer *tmp_integer = NULL; \
+		if(KSI_Integer_new(ctx, value, &tmp_integer)!=KSI_OK) goto done; \
+		if(KSI_##parent##_set##child(target, tmp_integer)!=KSI_OK) { KSI_Integer_free(tmp_integer); goto done; } \
+	} while (0)
 
-
-bool set_rfc3161_fields(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ctx)
+bool convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC3161 *rfc3161, rfc3161_fields *fields)
 {
 	static const char *oid= "1.2.840.113549.1.1.11";
 	bool ret=false;
 	uint32_t cert_id;
-	KSI_RFC3161 *rfc3161;
 	KSI_DataHash *hash=NULL;
-	KSI_OctetString *tmp_octet_string=NULL;
-	KSI_Integer *tmp_integer=NULL;
 	KSI_CalendarAuthRec *cal_auth_rec=NULL;
 	KSI_PublicationData *publication_data=NULL;
 	KSI_PKISignedData *pki_signature;
 	KSI_Utf8String *utf8_string;
-
-	if(KSI_RFC3161_new(ctx, &rfc3161)!=KSI_OK)
-		goto done;
 
 	if(KSI_DataHash_fromDigest(ctx, 1, fields->input_hash.ptr, 32, &hash)!=KSI_OK)
 		goto done;
@@ -342,7 +311,7 @@ bool set_rfc3161_fields(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ctx
 	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrPrefix, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size);
 	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrSuffix, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size);
 
-	KSI_Signature_setRFC3161(ksi, rfc3161);
+	KSI_SignatureBuilder_setRFC3161(builder, rfc3161);
 
 	if(KSI_CalendarAuthRec_new(ctx, &cal_auth_rec)!=KSI_OK)
 		goto done;
@@ -375,7 +344,7 @@ bool set_rfc3161_fields(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ctx
 
 	KSI_CalendarAuthRec_setSignatureData(cal_auth_rec, pki_signature);
 
-	KSI_Signature_setCalendarAuthRecord(ksi, cal_auth_rec);
+	KSI_SignatureBuilder_setCalendarAuthRecord(builder, cal_auth_rec);
 
 	ret = true;
 
@@ -387,10 +356,10 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 						const unsigned char *chain, size_t chain_size,
 						size_t *chain_pos, unsigned char* input_level_byte) {
 
-	KSI_Integer *tmp_integer=NULL;
 	KSI_HashChainLink *link=NULL;
 	KSI_HashChainLinkList *links=NULL;
 	KSI_DataHash *hash=NULL;
+	KSI_OctetString *legacy_id=NULL;
 	size_t current_pos=*chain_pos;
 	size_t chain_item_count = 0;
 	unsigned char level_byte;
@@ -434,13 +403,16 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 			SET_INTEGER(link, HashChainLink, LevelCorrection, level_byte - *input_level_byte - 1);
 		}
 
-		if(KSI_DataHash_fromDigest(ctx, link_algo_id, chain + current_pos + 3, hash_size, &hash)!=KSI_OK)
-			return false;
+		if(is_left_link && is_metahash(chain + current_pos + 2, hash_size + 1)) {
+			KSI_OctetString_new(ctx, chain + current_pos + 3, hash_size, &legacy_id);
+			KSI_HashChainLink_setLegacyId(link, legacy_id);
+		}
+		else {
+			if(KSI_DataHash_fromDigest(ctx, link_algo_id, chain + current_pos + 3, hash_size, &hash)!=KSI_OK)
+				return false;
 
-		if(is_left_link && is_metahash(chain + current_pos + 2, hash_size + 1))
-			KSI_HashChainLink_setMetaHash(link, hash);
-		else
 			KSI_HashChainLink_setImprint(link, hash);
+		}
 
 		// if there is more than one item in the chain then it is possible to extract
 		// the hash algorithm from the second chain item, otherwise algorithm will
@@ -480,18 +452,12 @@ done:
 	return ret;
 }
 
-bool convert_aggregation_chains(KSI_Signature* ksi, KSI_CTX *ctx,
-								const unsigned char *chain, size_t chain_size) {
+bool convert_aggregation_chains(KSI_CTX *ctx,
+								const unsigned char *chain, size_t chain_size,
+								KSI_AggregationHashChainList *ksi_chain_list) {
 	size_t chain_pos = 0;
 	unsigned char level_byte = 0;
 	KSI_AggregationHashChain *ksi_chain=NULL;
-	KSI_LIST(KSI_AggregationHashChain) *ksi_chain_list=NULL;
-
-	if(KSI_AggregationHashChainList_new(&ksi_chain_list)!=KSI_OK)
-		return false;
-
-	if(KSI_Signature_setAggregationChainList(ksi, ksi_chain_list)!=KSI_OK)
-		return false;
 
 	// Extraxt all legacy aggregator chains and convert to KSI
 	while (chain_pos < chain_size)
@@ -510,28 +476,22 @@ bool convert_aggregation_chains(KSI_Signature* ksi, KSI_CTX *ctx,
 	return true;
 }
 
-bool convert_calendar_chain(KSI_Signature* ksi, KSI_CTX *ctx,
-								const unsigned char *chain, size_t chain_size) {
+bool convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain,
+	size_t chain_size, KSI_CalendarHashChain *ksi_calendar_chain) {
+
 	size_t current_pos=0;
 	unsigned char level_byte;
 	unsigned char algo_id;
 	unsigned hash_size;
 	bool is_left_link;
-	KSI_CalendarHashChain *ksi_chain;
 	KSI_HashChainLinkList *links;
 	KSI_HashChainLink *link;
 	KSI_DataHash *hash;
 
-	if(KSI_CalendarHashChain_new(ctx, &ksi_chain)!=KSI_OK)
-		return false;
-
-	if(KSI_Signature_setCalendarChain(ksi, ksi_chain)!=KSI_OK)
-		return false;
-
 	if(KSI_HashChainLinkList_new(&links)!=KSI_OK)
 			return false;
 
-	if(KSI_CalendarHashChain_setHashChain(ksi_chain, links)!=KSI_OK)
+	if(KSI_CalendarHashChain_setHashChain(ksi_calendar_chain, links)!=KSI_OK)
 		return false;
 
 	while (current_pos < chain_size)
@@ -584,6 +544,8 @@ bool calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList* chains,
 	size_t i, chains_count;
 	KSI_DataHash *hash=NULL;
 	KSI_AggregationHashChain *aggr;
+	KSI_HashChainLinkList *links;
+	KSI_Integer *hashId;
 	const unsigned char* data;
 	size_t data_size;
 
@@ -599,10 +561,11 @@ bool calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList* chains,
 			return false;
 
 		KSI_AggregationHashChain_setInputHash(aggr, hash);
+		KSI_AggregationHashChain_getChain(aggr, &links);
+		KSI_AggregationHashChain_getAggrHashId(aggr, &hashId);
 
-
-		if(KSI_HashChain_aggregate(ctx, aggr->chain, aggr->inputHash, level_byte,
-								   KSI_Integer_getUInt64(aggr->aggrHashId), &level_byte, &hash) != KSI_OK)
+		if(KSI_HashChain_aggregate(ctx, links, hash, level_byte,
+								   KSI_Integer_getUInt64(hashId), &level_byte, &hash) != KSI_OK)
 			return false;
 	}
 
@@ -640,18 +603,19 @@ done:
 	return result;
 }
 
-bool create_ksi_sgnature(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ctx) {
+bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fields *fields, KSI_Signature **ksi_signature) {
 
 	bool ret=false;
 	time_t aggregation_time;
 	KSI_CalendarHashChain *calendar_chain;
 	KSI_AggregationHashChain *aggr_chain, *last_chain=NULL;
-	KSI_AggregationHashChainList *aggr_chains;
-	KSI_Integer *tmp_integer, *tmp_index;
+	KSI_AggregationHashChainList *aggr_chains=NULL;
+	KSI_Integer *tmp_index;
 	size_t chains_count, links_count, i;
 	KSI_IntegerList *indices;
 	KSI_HashChainLinkList *links;
 	KSI_HashChainLink *link;
+	KSI_RFC3161 *rfc3161;
 	KSI_DataHasher *hasher=NULL;
 	KSI_DataHash *hash1, *hash2, *output_hash;
 	const unsigned char *data;
@@ -659,34 +623,51 @@ bool create_ksi_sgnature(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ct
 	uint64_t index;
 	int is_left;
 
-	if(!set_rfc3161_fields(fields, ksi, ctx))
+	if(KSI_RFC3161_new(ctx, &rfc3161)!=KSI_OK)
 		goto done;
 
-	if(!convert_aggregation_chains(ksi, ctx, fields->location_chain.ptr,
-							   fields->location_chain.size))
+	if(KSI_SignatureBuilder_setRFC3161(builder, rfc3161)!=KSI_OK)
 		goto done;
 
-	if(!convert_calendar_chain(ksi, ctx, fields->history_chain.ptr,
-							   fields->history_chain.size))
+	if(!convert_rfc3161_fields(ctx, builder, rfc3161, fields))
 		goto done;
 
-	//calculate and set aggregation time
-	if(KSI_Signature_getCalendarChain(ksi, &calendar_chain)!=KSI_OK)
-		return false;
+	if(KSI_CalendarHashChain_new(ctx, &calendar_chain)!=KSI_OK)
+		goto done;
+
+	if(KSI_SignatureBuilder_setCalendarHashChain(builder, calendar_chain)!=KSI_OK)
+		goto done;
+
+	if(!convert_calendar_chain(ctx, fields->history_chain.ptr,
+							   fields->history_chain.size, calendar_chain))
+		goto done;
 
 	SET_INTEGER(calendar_chain, CalendarHashChain, PublicationTime, fields->publication_time);
 
 	if(KSI_CalendarHashChain_calculateAggregationTime(calendar_chain, &aggregation_time)!=KSI_OK)
-		return false;
+		goto done;
 
-	SET_INTEGER(ksi->rfc3161, RFC3161, AggregationTime, aggregation_time);
+	SET_INTEGER(rfc3161, RFC3161, AggregationTime, aggregation_time);
 	SET_INTEGER(calendar_chain, CalendarHashChain, AggregationTime, aggregation_time);
 
-	if(KSI_Signature_getAggregationChainList(ksi, &aggr_chains)!=KSI_OK)
-		return false;
+	if(KSI_AggregationHashChainList_new(&aggr_chains)!=KSI_OK)
+		goto done;
+
+	if(!convert_aggregation_chains(ctx, fields->location_chain.ptr,
+							   fields->location_chain.size, aggr_chains))
+		goto done;
+
+	chains_count=KSI_AggregationHashChainList_length(aggr_chains);
+	for(i=chains_count; i-- > 0;)
+	{
+		if(KSI_AggregationHashChainList_elementAt(aggr_chains, i, &aggr_chain)!=KSI_OK)
+			goto done;
+
+		if(KSI_SignatureBuilder_addAggregationChain(builder, aggr_chain)!=KSI_OK)
+			goto done;
+	}
 
 	//Create aggregation chain indices
-	chains_count=KSI_AggregationHashChainList_length(aggr_chains);
 	for(i=chains_count; i-- > 0;)
 	{
 		if(KSI_AggregationHashChainList_elementAt(aggr_chains, i, &aggr_chain)!=KSI_OK)
@@ -737,7 +718,7 @@ bool create_ksi_sgnature(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ct
 	if(KSI_IntegerList_new(&indices)!=KSI_OK)
 		goto done;
 
-	if(KSI_RFC3161_setChainIndex(ksi->rfc3161, indices)!=KSI_OK)
+	if(KSI_RFC3161_setChainIndex(rfc3161, indices)!=KSI_OK)
 		goto done;
 
 	copy_indices(ctx, last_chain, indices);
@@ -766,58 +747,45 @@ bool create_ksi_sgnature(rfc3161_fields *fields, KSI_Signature* ksi, KSI_CTX *ct
 	if(!calculate_aggr_chains(ctx, aggr_chains, hash2, &output_hash))
 		goto done;
 
-	ksi->calendarChain->inputHash=output_hash;
+	KSI_CalendarHashChain_setInputHash(calendar_chain, output_hash);
+	//ksi->calendarChain->inputHash=output_hash;
 
 	ret=true;
 
 done:
-	if(hash1)
-		KSI_DataHash_free(hash1);
-
-	if(hash2)
-		KSI_DataHash_free(hash2);
+	KSI_DataHash_free(hash1);
+	KSI_DataHash_free(hash2);
+	KSI_AggregationHashChainList_free(aggr_chains);
 
 	return ret;
 }
 
-bool convert_signature(const unsigned char *rfc3161_signature, size_t rfc3161_size,
-					   unsigned char **ksi_signature, size_t *ksi_size) {
+bool convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, size_t rfc3161_size,
+					   KSI_Signature **ksi_signature) {
 	bool result=false;
 	rfc3161_fields fields;
-	KSI_CTX *ctx=NULL;
-	KSI_Signature *signature=NULL;
+	KSI_SignatureBuilder *builder = NULL;
+	KSI_Signature *out = NULL;
 
 	memset(&fields, 0, sizeof(fields));
 
 	if(!parse_values_from_der(rfc3161_signature, rfc3161_size, &fields))
 		goto done;
 
-	if(KSI_CTX_new(&ctx)!=KSI_OK)
+	if(KSI_SignatureBuilder_open(ctx, &builder)!=KSI_OK)
 		goto done;
 
-	if(KSI_Signature_new(ctx, &signature)!=KSI_OK)
+	if(!create_ksi_sgnature(ctx, builder, &fields, &out))
 		goto done;
 
-	if(!create_ksi_sgnature(&fields, signature, ctx))
+	if(!KSI_SignatureBuilder_close(builder, 0, &out) || out == NULL)
 		goto done;
 
-	if(KSI_Signature_serialize(signature, ksi_signature, ksi_size)!=KSI_OK)
-		goto done;
-
-	result=true;
+	*ksi_signature = out;
+	result = true;
 
 done:
-	/*if(result!=true)
-	{
-		KSI_ERR_toString(ctx, str_buffer, sizeof(str_buffer));
-		write(2, str_buffer, strlen(str_buffer));
-	}*/
-
-	if(signature!=NULL)
-		KSI_Signature_free(signature);
-
-	if(ctx!=NULL)
-			KSI_CTX_free(ctx);
+	KSI_SignatureBuilder_free(builder);
 
 	return result;
 }

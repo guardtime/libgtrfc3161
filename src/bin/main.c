@@ -69,13 +69,15 @@ done:
 
 int main(int argc, char** argv) {
 
-	bool result=false;
+	int result=1;
 	unsigned char *buffer = NULL, *outbuf = NULL;
 	size_t file_size = 0;
+	KSI_Signature *ksi_signature = NULL;
+	KSI_CTX *ctx = NULL;
 
 	if(argc != 3) {
 		printf("Not enough arguments\n\nUsage: %s <inputfile> <outputfile>\n", argv[0]);
-		return 1;
+		goto done;
 	}
 
 	if(!(buffer = load_file(argv[1], &file_size))) {
@@ -83,16 +85,26 @@ int main(int argc, char** argv) {
 		goto done;
 	}
 
-	if(!convert_signature(buffer, file_size, &outbuf, &file_size))
+	if(KSI_CTX_new(&ctx)!=KSI_OK)
 		goto done;
 
-	if(strlen(argv[2])==1 && argv[2][0]=='-')
-		write(1, outbuf, file_size);
+	if(!convert_signature(ctx, buffer, file_size, &ksi_signature) || ksi_signature==NULL)
+		goto done;
+
+	if(KSI_Signature_serialize(ksi_signature, &outbuf, &file_size)!=KSI_OK)
+		goto done;
+
+	if(strlen(argv[2])==1 && argv[2][0]=='-') {
+		if(write(1, outbuf, file_size)!=file_size) {
+			fprintf(stderr, "Error \"%s\" writing signature to stabdard output", strerror(errno));
+		}
+	}
 	else {
 		if(!save_file(argv[2], outbuf, file_size))
-			printf("Failed to write data to		%s: %s", argv[1], strerror(errno));
+			fprintf(stderr, "Failed to write data to %s: %s", argv[1], strerror(errno));
 	}
-	result=true;
+	
+	result=0;
 
 done:
 	if(buffer != NULL)
@@ -101,5 +113,5 @@ done:
 	if(outbuf != NULL)
 		free(outbuf);
 
-	return !result;
+	return result;
 }
