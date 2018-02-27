@@ -14,8 +14,9 @@ AC_PROG_RANLIB
 
 AC_LANG([C])
 
-PKG_CHECK_MODULES([KSI], [ksi], [have_libksi=yes], [have_libksi=no])
-AM_CONDITIONAL([KSI],  [test "$have_libksi" = "yes"])
+# Make sure libksi exists and supports KSI_SignatureBuilder interface.
+AC_CHECK_LIB([ksi], [KSI_CTX_new], [], [AC_MSG_FAILURE([Could not find libksi])])
+AC_CHECK_LIB([ksi], [KSI_SignatureBuilder_open], [], [AC_MSG_FAILURE([Current libksi version (< 3.10.1839) does not support KSI_SignatureBuilder interface.])])
 
 # Checks for libraries.
 
