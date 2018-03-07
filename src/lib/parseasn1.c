@@ -92,18 +92,19 @@ bool asn1_dom_add_object(asn1_dom* dom, asn1_object* asn1) {
 void asn1_dom_dump(asn1_dom* dom) {
 
 	int lastlevel=0;
+	int i, j;
 
-	for(int i=0; i<dom->used; i++) {
+	for(i=0; i<dom->used; i++) {
 		const asn1_object* asn1=&dom->objects[i];
 
 		while(asn1->level<lastlevel) {
-			for(int j=0; j<lastlevel; j++)
+			for(j=0; j<lastlevel; j++)
 				printf("  ");
 			printf("}\n");
 			lastlevel--;
 		}
 
-		for(int j=0; j<asn1->level; j++)
+		for(j=0; j<asn1->level; j++)
 			printf("  ");
 
 		const char* name=find_tag_name(asn1->tag);
@@ -126,12 +127,14 @@ void asn1_dom_dump(asn1_dom* dom) {
 
 int asn1_dom_find_child(const asn1_dom* dom, ASN1POSITION parent_index, unsigned tag) {
 
+	unsigned i;
+
 	if(parent_index>=dom->used-1)
 		return -1;
 
 	asn1_object *parent=&dom->objects[parent_index];
 
-	for(unsigned i=parent_index+1; i<dom->used && dom->objects[i].level > parent->level; i++)
+	for(i=parent_index+1; i<dom->used && dom->objects[i].level > parent->level; i++)
 		if(dom->objects[i].tag==tag)
 			return i;
 
@@ -141,13 +144,14 @@ int asn1_dom_find_child(const asn1_dom* dom, ASN1POSITION parent_index, unsigned
 int asn1_dom_get_child(const asn1_dom* dom, ASN1POSITION parent_index, ASN1POSITION index) {
 
 	int child_found=0;
+	unsigned i;
 
 	if(parent_index>=dom->used-1)
 		return -1;
 
 	asn1_object *parent=&dom->objects[parent_index];
 
-	for(unsigned i=parent_index+1; i<dom->used; i++) {
+	for(i=parent_index+1; i<dom->used; i++) {
 
 		if(dom->objects[i].level == parent->level)
 			return -1;
@@ -248,6 +252,7 @@ bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *as
 
 	unsigned pos = 1;
 	long tag = 0, l=0;
+	unsigned i;
 
 	asn1->obj_class = (data[0] & 0xc0) >> 6;
 	asn1->structured = ((data[0] & 0x20) == 0x20);
@@ -278,7 +283,7 @@ bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *as
 		int bytes = data[pos] & 0x7f;
 		pos++;
 		l = 0;
-		for (unsigned i=0; i<bytes; i++) {
+		for (i=0; i<bytes; i++) {
 			l = l * 256 + data[pos];
 			pos++;
 		}
@@ -309,11 +314,12 @@ bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *as
 uint64_t decode_integer(const unsigned char* data, size_t length)
 {
 	uint64_t result=0;
+	size_t i;
 
 	if (length > 8)
 		return false;
 
-	for (size_t i=0; i < length; i++)
+	for (i=0; i < length; i++)
 	{
 		result = (result << 8);
 		result += data[i];
