@@ -710,7 +710,8 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 			index <<= 1;
 			if(KSI_HashChainLink_getIsLeft(link, &is_left)!=KSI_OK)
 				goto done;
-			index |= 1;
+			if (is_left)
+				index |= 1;
 		}
 
 		if(KSI_Integer_new(ctx, index, &tmp_index)!=KSI_OK)
