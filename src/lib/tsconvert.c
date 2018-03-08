@@ -787,7 +787,7 @@ bool convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, siz
 	if(!create_ksi_sgnature(ctx, builder, &fields, &out))
 		goto done;
 
-	if(!KSI_SignatureBuilder_close(builder, 0, &out) || out == NULL)
+	if(KSI_SignatureBuilder_close(builder, 0, &out) != KSI_OK || out == NULL)
 		goto done;
 
 	*ksi_signature = out;
