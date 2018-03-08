@@ -201,6 +201,8 @@ int get_chain_item_size(const unsigned char* chain, size_t position) {
 
 bool is_metahash(const unsigned char *chain, size_t size)
 {
+	size_t i;
+
 	//Hash code 3 with length 28 is a hardcoded for formerly used SHA2-224
 	const size_t hash_len = 28;
 	if (size <= 0) {
@@ -219,7 +221,7 @@ bool is_metahash(const unsigned char *chain, size_t size)
 		/* Second byte of sibling hash value not a valid name length. */
 		return false;
 	}
-	for (size_t i = 3 + chain[2]; i < hash_len; ++i) {
+	for (i = 3 + chain[2]; i < hash_len; ++i) {
 		if (chain[i] != 0) {
 			/* Name not properly padded. */
 			return false;
@@ -413,7 +415,7 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 		}
 
 		if(is_left_link && is_metahash(chain + current_pos + 2, hash_size + 1)) {
-			KSI_OctetString_new(ctx, chain + current_pos + 3, hash_size, &legacy_id);
+			KSI_OctetString_new(ctx, chain + current_pos + 2, hash_size + 1, &legacy_id);
 			KSI_HashChainLink_setLegacyId(link, legacy_id);
 		}
 		else {
@@ -588,13 +590,14 @@ bool copy_indices(KSI_CTX *ctx, KSI_AggregationHashChain *chain, KSI_IntegerList
 	int indices_count;
 	KSI_IntegerList *last_indices;
 	KSI_Integer  *tmp_integer, *tmp_index;
+	size_t j;
 
 	if(KSI_AggregationHashChain_getChainIndex(chain, &last_indices)!=KSI_OK)
 		goto done;
 
 	indices_count=KSI_IntegerList_length(last_indices);
 
-	for (size_t j = 0; j < indices_count; j++)
+	for (j = 0; j < indices_count; j++)
 	{
 		if(KSI_IntegerList_elementAt(last_indices, j, &tmp_integer)!=KSI_OK)
 			goto done;
@@ -631,6 +634,7 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	size_t data_size;
 	uint64_t index;
 	int is_left;
+	size_t j;
 
 	if(KSI_RFC3161_new(ctx, &rfc3161)!=KSI_OK)
 		goto done;
@@ -703,7 +707,7 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 
 		if(KSI_AggregationHashChain_setChainIndex(aggr_chain, indices)!=KSI_OK)
 			goto done;
-		for (size_t j = links_count; j-- > 0;)
+		for (j = links_count; j-- > 0;)
 		{
 			if(KSI_HashChainLinkList_elementAt(links, j, &link)!=KSI_OK)
 				goto done;
@@ -711,7 +715,8 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 			index <<= 1;
 			if(KSI_HashChainLink_getIsLeft(link, &is_left)!=KSI_OK)
 				goto done;
-			index |= 1;
+			if (is_left)
+				index |= 1;
 		}
 
 		if(KSI_Integer_new(ctx, index, &tmp_index)!=KSI_OK)
@@ -787,7 +792,7 @@ bool convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, siz
 	if(!create_ksi_sgnature(ctx, builder, &fields, &out))
 		goto done;
 
-	if(KSI_SignatureBuilder_close(builder, 0, &out)!=KSI_OK || out == NULL)
+	if(KSI_SignatureBuilder_close(builder, 0, &out) != KSI_OK || out == NULL)
 		goto done;
 
 	*ksi_signature = out;
