@@ -394,7 +394,11 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 			return false;
 
 		link_algo_id=chain[current_pos + 2];
-		hash_size = KSI_getHashLength(chain[current_pos + 2]);
+		if (is_metahash(chain + current_pos + 2, 1)) {
+			hash_size = 28;
+		} else {
+			hash_size = KSI_getHashLength(chain[current_pos + 2]);
+		}
 		is_left_link = chain[current_pos + 1];
 		level_byte=chain[current_pos + 3 + hash_size];
 
@@ -406,7 +410,7 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 		}
 
 		if(is_left_link && is_metahash(chain + current_pos + 2, hash_size + 1)) {
-			KSI_OctetString_new(ctx, chain + current_pos + 3, hash_size, &legacy_id);
+			KSI_OctetString_new(ctx, chain + current_pos + 2, hash_size + 1, &legacy_id);
 			KSI_HashChainLink_setLegacyId(link, legacy_id);
 		}
 		else {
