@@ -166,6 +166,11 @@ done:
 	return true;
 }
 
+
+static inline unsigned get_hash_size(unsigned char id) {
+	return id == 3 ? 28 : KSI_getHashLength(id);
+}
+
 bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 {
 	if (length - pos < 3)
@@ -175,23 +180,23 @@ bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 	if (chain[pos + 1] > 1)
 		return false;
 
-	// Verify imprint algorithm
-	if (!KSI_isHashAlgorithmSupported(chain[pos + 1]))
+	// Verify imprint aslgorithm
+	if (!KSI_isHashAlgorithmSupported(chain[pos + 2]) && chain[pos + 2] != 3)
 		return false;
 
 	// Verify step algorithm
-	if (!KSI_isHashAlgorithmSupported(chain[pos]))
+	if (!KSI_isHashAlgorithmSupported(chain[pos]) && chain[pos] != 3)
 		return false;
 
 	// Check if next step is within the limist of the chain lenght
-	if (pos + KSI_getHashLength(chain[pos + 1]) + 4 > length)
+	if (pos + get_hash_size(chain[pos + 1]) + 4 > length)
 		return false;
 
 	return true;
 }
 
 int get_chain_item_size(const unsigned char* chain, size_t position) {
-	return KSI_getHashLength(chain[position+1]) + 4;
+	return (get_hash_size(chain[position + 2])) + 4;
 }
 
 bool is_metahash(const unsigned char *chain, size_t size)
@@ -241,7 +246,7 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 	if (next_pos >= chain_length || !check_link_item(chain, next_pos, chain_length))
 		return false;
 
-	level_byte = chain[next_pos + KSI_getHashLength(chain[next_pos + 2]) + 3];
+	level_byte = chain[next_pos + get_hash_size(chain[next_pos + 2]) + 3];
 	if ((level_byte == LOCAL_LEVEL) ||
 		(level_byte == STATE_LEVEL) ||
 		(level_byte == NATIONAL_LEVEL) ||
@@ -253,7 +258,7 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 	if (next_pos >= chain_length || !check_link_item(chain, next_pos, chain_length))
 		return false;
 
-	level_byte = chain[next_pos + KSI_getHashLength(chain[next_pos + 2]) + 3];
+	level_byte = chain[next_pos + get_hash_size(chain[next_pos + 2]) + 3];
 	if ((level_byte == LOCAL_LEVEL) ||
 		(level_byte == STATE_LEVEL) ||
 		(level_byte == NATIONAL_LEVEL) ||
@@ -264,7 +269,7 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 		// lets go one link deeper
 
 		// if next is metadata imprint then this is the last item
-		if (is_metahash(chain + position + 2, KSI_getHashLength(chain[position+1]) + 1))
+		if (is_metahash(chain + position + 2, get_hash_size(chain[position+1]) + 1))
 			return true;
 	}
 
@@ -327,10 +332,11 @@ bool convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC
 
 	SET_INTEGER(publication_data, PublicationData, Time, fields->publication_time);
 
-	KSI_CalendarAuthRec_setPublishedData(cal_auth_rec, publication_data);
+	if(KSI_CalendarAuthRec_setPublishedData(cal_auth_rec, publication_data)!=KSI_OK)
+		goto done;
 
 	if(KSI_PKISignedData_new(ctx, &pki_signature)!=KSI_OK)
-			goto done;
+		goto done;
 
 	cert_id=ntohl(KSI_crc32(fields->certficate.ptr, fields->certficate.size, 0));
 
@@ -338,13 +344,16 @@ bool convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC
 	SET_OCTET_STRING(pki_signature, PKISignedData, SignatureValue, fields->signature.ptr, fields->signature.size);
 
 	if(KSI_Utf8String_new(ctx, oid, strlen(oid)+1, &utf8_string)!=KSI_OK)
-			goto done;
+		goto done;
 
-	KSI_PKISignedData_setSigType(pki_signature, utf8_string);
+	if(KSI_PKISignedData_setSigType(pki_signature, utf8_string)!=KSI_OK)
+		goto done;
 
-	KSI_CalendarAuthRec_setSignatureData(cal_auth_rec, pki_signature);
+	if(KSI_CalendarAuthRec_setSignatureData(cal_auth_rec, pki_signature)!=KSI_OK)
+		goto done;
 
-	KSI_SignatureBuilder_setCalendarAuthRecord(builder, cal_auth_rec);
+	if(KSI_SignatureBuilder_setCalendarAuthRecord(builder, cal_auth_rec)!=KSI_OK)
+		goto done;
 
 	ret = true;
 
@@ -370,7 +379,7 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 	bool ret=false;
 
 	if(KSI_HashChainLinkList_new(&links)!=KSI_OK)
-			return false;
+		return false;
 
 	if(KSI_AggregationHashChain_setChain(ksi_chain, links)!=KSI_OK)
 		return false;
@@ -392,7 +401,7 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 			return false;
 
 		link_algo_id=chain[current_pos + 2];
-		hash_size = KSI_getHashLength(chain[current_pos + 2]);
+		hash_size = get_hash_size(chain[current_pos + 2]);
 		is_left_link = chain[current_pos + 1];
 		level_byte=chain[current_pos + 3 + hash_size];
 
@@ -501,7 +510,7 @@ bool convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain,
 			return false;
 
 		algo_id=chain[current_pos + 2];
-		hash_size = KSI_getHashLength(chain[current_pos + 2]);
+		hash_size = get_hash_size(chain[current_pos + 2]);
 		level_byte = chain[current_pos + 3 + hash_size];
 
 		// In legacy calendar chain LevelByte is always 255 (0xFF)
@@ -778,7 +787,7 @@ bool convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, siz
 	if(!create_ksi_sgnature(ctx, builder, &fields, &out))
 		goto done;
 
-	if(!KSI_SignatureBuilder_close(builder, 0, &out) || out == NULL)
+	if(KSI_SignatureBuilder_close(builder, 0, &out)!=KSI_OK || out == NULL)
 		goto done;
 
 	*ksi_signature = out;
