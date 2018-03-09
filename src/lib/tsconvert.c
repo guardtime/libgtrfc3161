@@ -189,7 +189,7 @@ bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 		return false;
 
 	// Check if next step is within the limist of the chain lenght
-	if (pos + get_hash_size(chain[pos + 1]) + 4 > length)
+	if (pos + get_hash_size(chain[pos + 2]) + 4 > length)
 		return false;
 
 	return true;
@@ -271,7 +271,7 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 		// lets go one link deeper
 
 		// if next is metadata imprint then this is the last item
-		if (is_metahash(chain + position + 2, get_hash_size(chain[position+1]) + 1))
+		if (is_metahash(chain + position + 2, get_hash_size(chain[position+2]) + 1))
 			return true;
 	}
 
@@ -615,7 +615,7 @@ done:
 	return result;
 }
 
-bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fields *fields, KSI_Signature **ksi_signature) {
+bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fields *fields) {
 
 	bool ret=false;
 	time_t aggregation_time;
@@ -789,7 +789,7 @@ bool convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, siz
 	if(KSI_SignatureBuilder_open(ctx, &builder)!=KSI_OK)
 		goto done;
 
-	if(!create_ksi_sgnature(ctx, builder, &fields, &out))
+	if(!create_ksi_sgnature(ctx, builder, &fields))
 		goto done;
 
 	if(KSI_SignatureBuilder_close(builder, 0, &out) != KSI_OK || out == NULL)
