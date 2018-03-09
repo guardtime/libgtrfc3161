@@ -302,13 +302,14 @@ bool convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC
 	KSI_DataHash *hash=NULL;
 	KSI_CalendarAuthRec *cal_auth_rec=NULL;
 	KSI_PublicationData *publication_data=NULL;
-	KSI_PKISignedData *pki_signature;
-	KSI_Utf8String *utf8_string;
+	KSI_PKISignedData *pki_signature = NULL;
+	KSI_Utf8String *utf8_string = NULL;
 
 	if(KSI_DataHash_fromDigest(ctx, 1, fields->input_hash.ptr, 32, &hash)!=KSI_OK)
 		goto done;
 
-	KSI_RFC3161_setInputHash(rfc3161, hash);
+	if (KSI_RFC3161_setInputHash(rfc3161, hash) != KSI_OK)
+		goto done;
 
 	SET_INTEGER(rfc3161, RFC3161, TstInfoAlgo, 1);
 	SET_OCTET_STRING(rfc3161, RFC3161, TstInfoPrefix, fields->tst_info_prefix.ptr, fields->tst_info_prefix.size);
@@ -318,7 +319,8 @@ bool convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC
 	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrPrefix, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size);
 	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrSuffix, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size);
 
-	KSI_SignatureBuilder_setRFC3161(builder, rfc3161);
+	if (KSI_SignatureBuilder_setRFC3161(builder, rfc3161) != KSI_OK)
+		goto done;
 
 	if(KSI_CalendarAuthRec_new(ctx, &cal_auth_rec)!=KSI_OK)
 		goto done;
@@ -330,7 +332,8 @@ bool convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC
 	if(KSI_DataHash_fromDigest(ctx, 1, fields->publication_hash.ptr+1, 32, &hash)!=KSI_OK)
 		goto done;
 
-	KSI_PublicationData_setImprint(publication_data, hash);
+	if (KSI_PublicationData_setImprint(publication_data, hash) != KSI_OK)
+		goto done;
 
 	SET_INTEGER(publication_data, PublicationData, Time, fields->publication_time);
 
@@ -407,7 +410,8 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 		is_left_link = chain[current_pos + 1];
 		level_byte=chain[current_pos + 3 + hash_size];
 
-		KSI_HashChainLink_setIsLeft(link, is_left_link);
+		if (KSI_HashChainLink_setIsLeft(link, is_left_link) != KSI_OK)
+			return false;
 
 		if (*input_level_byte + 1 < level_byte)
 		{
@@ -415,14 +419,17 @@ bool extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 		}
 
 		if(is_left_link && is_metahash(chain + current_pos + 2, hash_size + 1)) {
-			KSI_OctetString_new(ctx, chain + current_pos + 2, hash_size + 1, &legacy_id);
-			KSI_HashChainLink_setLegacyId(link, legacy_id);
+			if (KSI_OctetString_new(ctx, chain + current_pos + 2, hash_size + 1, &legacy_id) != KSI_OK)
+				return false;
+			if (KSI_HashChainLink_setLegacyId(link, legacy_id) != KSI_OK)
+				return false;
 		}
 		else {
 			if(KSI_DataHash_fromDigest(ctx, link_algo_id, chain + current_pos + 3, hash_size, &hash)!=KSI_OK)
 				return false;
 
-			KSI_HashChainLink_setImprint(link, hash);
+			if (KSI_HashChainLink_setImprint(link, hash) != KSI_OK)
+				return false;
 		}
 
 		// if there is more than one item in the chain then it is possible to extract
@@ -495,9 +502,9 @@ bool convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain,
 	unsigned char algo_id;
 	unsigned hash_size;
 	bool is_left_link;
-	KSI_HashChainLinkList *links;
-	KSI_HashChainLink *link;
-	KSI_DataHash *hash;
+	KSI_HashChainLinkList *links = NULL;
+	KSI_HashChainLink *link = NULL;
+	KSI_DataHash *hash = NULL;
 
 	if(KSI_HashChainLinkList_new(&links)!=KSI_OK)
 			return false;
@@ -532,12 +539,14 @@ bool convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain,
 		if(KSI_HashChainLinkList_append(links, link)!=KSI_OK)
 			return false;
 
-		KSI_HashChainLink_setIsLeft(link, is_left_link);
+		if (KSI_HashChainLink_setIsLeft(link, is_left_link) != KSI_OK)
+			return false;
 
 		if(KSI_DataHash_fromDigest(ctx, algo_id, chain + current_pos + 3, hash_size, &hash)!=KSI_OK)
 			return false;
 
-		KSI_HashChainLink_setImprint(link, hash);
+		if (KSI_HashChainLink_setImprint(link, hash) != KSI_OK)
+			return false;
 
 		// Increment to the next element in legacy chain
 		current_pos += hash_size + 4;
@@ -554,13 +563,14 @@ bool calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList* chains,
 	int level_byte=0;
 	size_t i, chains_count;
 	KSI_DataHash *hash=NULL;
-	KSI_AggregationHashChain *aggr;
-	KSI_HashChainLinkList *links;
-	KSI_Integer *hashId;
-	const unsigned char* data;
+	KSI_AggregationHashChain *aggr = NULL;
+	KSI_HashChainLinkList *links = NULL;
+	KSI_Integer *hashId = NULL;
+	const unsigned char* data = NULL;
 	size_t data_size;
 
-	KSI_DataHash_getImprint(input_hash, &data, &data_size);
+	if (KSI_DataHash_getImprint(input_hash, &data, &data_size) != KSI_OK)
+		return false;
 	chains_count=KSI_AggregationHashChainList_length(chains);
 
 	if(KSI_DataHash_fromImprint(ctx, data, data_size, &hash)!=KSI_OK)
@@ -571,9 +581,12 @@ bool calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList* chains,
 		if(KSI_AggregationHashChainList_elementAt(chains, i, &aggr)!=KSI_OK)
 			return false;
 
-		KSI_AggregationHashChain_setInputHash(aggr, hash);
-		KSI_AggregationHashChain_getChain(aggr, &links);
-		KSI_AggregationHashChain_getAggrHashId(aggr, &hashId);
+		if (KSI_AggregationHashChain_setInputHash(aggr, hash) != KSI_OK)
+			return false;
+		if (KSI_AggregationHashChain_getChain(aggr, &links) != KSI_OK)
+			return false;
+		if (KSI_AggregationHashChain_getAggrHashId(aggr, &hashId) != KSI_OK)
+			return false;
 
 		if(KSI_HashChain_aggregate(ctx, links, hash, level_byte,
 								   KSI_Integer_getUInt64(hashId), &level_byte, &hash) != KSI_OK)
@@ -588,8 +601,8 @@ bool calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList* chains,
 bool copy_indices(KSI_CTX *ctx, KSI_AggregationHashChain *chain, KSI_IntegerList *indices) {
 	bool result=false;
 	int indices_count;
-	KSI_IntegerList *last_indices;
-	KSI_Integer  *tmp_integer, *tmp_index;
+	KSI_IntegerList *last_indices = NULL;
+	KSI_Integer  *tmp_integer = NULL, *tmp_index = NULL;
 	size_t j;
 
 	if(KSI_AggregationHashChain_getChainIndex(chain, &last_indices)!=KSI_OK)
@@ -619,18 +632,18 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 
 	bool ret=false;
 	time_t aggregation_time;
-	KSI_CalendarHashChain *calendar_chain;
-	KSI_AggregationHashChain *aggr_chain, *last_chain=NULL;
+	KSI_CalendarHashChain *calendar_chain = NULL;
+	KSI_AggregationHashChain *aggr_chain = NULL, *last_chain=NULL;
 	KSI_AggregationHashChainList *aggr_chains=NULL;
-	KSI_Integer *tmp_index;
+	KSI_Integer *tmp_index = NULL;
 	size_t chains_count, links_count, i;
-	KSI_IntegerList *indices;
-	KSI_HashChainLinkList *links;
-	KSI_HashChainLink *link;
-	KSI_RFC3161 *rfc3161;
+	KSI_IntegerList *indices = NULL;
+	KSI_HashChainLinkList *links = NULL;
+	KSI_HashChainLink *link = NULL;
+	KSI_RFC3161 *rfc3161 = NULL;
 	KSI_DataHasher *hasher=NULL;
-	KSI_DataHash *hash1, *hash2, *output_hash;
-	const unsigned char *data;
+	KSI_DataHash *hash1 = NULL, *hash2 = NULL, *output_hash = NULL;
+	const unsigned char *data = NULL;
 	size_t data_size;
 	uint64_t index;
 	int is_left;
@@ -695,8 +708,10 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 			goto done;
 
 		//copy the upper chain indices into the lower one
-		if (last_chain)
-			copy_indices(ctx, last_chain, indices);
+		if (last_chain) {
+			if (!copy_indices(ctx, last_chain, indices))
+				goto done;
+		}
 
 		index = 1;
 
@@ -735,33 +750,42 @@ bool create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	if(KSI_RFC3161_setChainIndex(rfc3161, indices)!=KSI_OK)
 		goto done;
 
-	copy_indices(ctx, last_chain, indices);
+	if (!copy_indices(ctx, last_chain, indices))
+		goto done;
 
 	//set input hashes and verify the hash chain
 	if(KSI_DataHasher_open(ctx, 1, &hasher)!=KSI_OK)
 		goto done;
 
-	KSI_DataHasher_add(hasher, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size);
-	KSI_DataHasher_add(hasher, fields->tst_info_hash.ptr, fields->tst_info_hash.size);
-	KSI_DataHasher_add(hasher, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size);
+	if (KSI_DataHasher_add(hasher, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size) != KSI_OK)
+		goto done;
+	if (KSI_DataHasher_add(hasher, fields->tst_info_hash.ptr, fields->tst_info_hash.size) != KSI_OK)
+		goto done;
+	if (KSI_DataHasher_add(hasher, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size) != KSI_OK)
+		goto done;
 
-	KSI_DataHasher_close(hasher, &hash1);
+	if (KSI_DataHasher_close(hasher, &hash1) != KSI_OK)
+		goto done;
 	KSI_DataHasher_free(hasher);
 
 	if(KSI_DataHasher_open(ctx, 1, &hasher)!=KSI_OK)
 		goto done;
 
-	KSI_DataHash_getImprint(hash1, &data, &data_size);
+	if (KSI_DataHash_getImprint(hash1, &data, &data_size) != KSI_OK)
+		goto done;
 
-	KSI_DataHasher_add(hasher, data, data_size);
+	if (KSI_DataHasher_add(hasher, data, data_size) != KSI_OK)
+		goto done;
 
-	KSI_DataHasher_close(hasher, &hash2);
+	if (KSI_DataHasher_close(hasher, &hash2) != KSI_OK)
+		goto done;
 	KSI_DataHasher_free(hasher);
 
 	if(!calculate_aggr_chains(ctx, aggr_chains, hash2, &output_hash))
 		goto done;
 
-	KSI_CalendarHashChain_setInputHash(calendar_chain, output_hash);
+	if (KSI_CalendarHashChain_setInputHash(calendar_chain, output_hash) != KSI_OK)
+		goto done;
 	//ksi->calendarChain->inputHash=output_hash;
 
 	ret=true;
