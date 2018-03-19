@@ -1,0 +1,12 @@
+Source: liblegacy
+Section: devel
+Priority: optional
+Build-Depends: libksi
+Maintainer: Guardtime <support@guardtime.com>
+
+Package: liblegacy
+Architecture: any
+Section: devel
+Priority: optional
+Depends: libksi
+Description: Legacy signature converter C API.

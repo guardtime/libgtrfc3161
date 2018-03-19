@@ -1,33 +1,96 @@
-/autom4te.cache/
-/config/
-Makefile
-Makefile.in
-aclocal.m4
-app.info
-compile
-config.h
+# http://www.gnu.org/software/automake
+
+GNUMakefile.in
 config.h.in
-config.log
+config.h.in~
+Makefile.in
+/m4
+
+# http://www.gnu.org/software/autoconf
+
+/autom4te.cache
+/aclocal.m4
+/compile
+/configure
+/depcomp
+/install-sh
+/missing
+/stamp-h1
+/config
 config.status
-configure
-configure.scan
-coverage_report
-depcomp
-install-sh
-libtool
-m4
-missing
-stamp-h1
-*~
-*.html
-*.log
-*.o
-*.la
-*.so*
-*.a
+config.log
+
+GNUMakefile
+config.h
+
 .deps
-*.tar*
-*.zip
+liblegacy.pc
+src/lib/stamp-h1
+
+libtool
+
+#Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
 *.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.pdb
+*.dSYM/
+
+# Binaries and log files
+src/example/.libs/
+src/example/legacy_convert
+src/lib/.libs/
+*.log
+test/.dirstamp
+test/.libs/
+test/cutest/.dirstamp
+test/runner
+test/integration-runner
+test/malloc-runner
+testsuite-xunit.xml
+_testsuite.xml
+
+# Code coverage report files #
+coverage.info
+coverage/
 *.gcno
 *.gcda
+coverage.xml
+
+# Configuration files
+test/integrationtest.conf
+
+# Generated header files
+version.h
+/Debug/
+
+*.bak
+*.rpm
+liblegacy.spec

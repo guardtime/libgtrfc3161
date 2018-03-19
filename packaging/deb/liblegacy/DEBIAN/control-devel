@@ -1,0 +1,8 @@
+Package: liblegacy-devel
+Version: @VER@
+Section: devel
+Priority: optional
+Architecture: @ARCH@
+Depends: libksi
+Maintainer: Guardtime <support@guardtime.com>
+Description: Legacy signature converter C API development library.
