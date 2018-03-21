@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "parseasn1.h"
+#include "tsconvert.h"
 
 typedef struct tag_name_st {
 	unsigned char tag;
@@ -42,7 +43,7 @@ asn1_dom* asn1_dom_new(size_t initial_size) {
 	if(!dom)
 		return NULL;
 
-	if(!asn1_dom_init(dom, initial_size))
+	if(asn1_dom_init(dom, initial_size) != LEGACY_OK)
 	{
 		asn1_dom_free(dom);
 		return NULL;
@@ -51,16 +52,16 @@ asn1_dom* asn1_dom_new(size_t initial_size) {
 	return dom;
 }
 
-bool asn1_dom_init(asn1_dom* dom, size_t initial_size) {
+int asn1_dom_init(asn1_dom* dom, size_t initial_size) {
 	dom->objects=(asn1_object*)malloc(initial_size*sizeof(asn1_object));
 
 	if(!dom->objects)
-		return false;
+		return LEGACY_OUT_OF_MEMORY;
 
 	dom->data=NULL;
 	dom->allocated=initial_size;
 	dom->used=0;
-	return true;
+	return LEGACY_OK;
 }
 
 void asn1_dom_free(asn1_dom* dom) {
@@ -73,20 +74,26 @@ void asn1_dom_free(asn1_dom* dom) {
 	free(dom);
 }
 
-bool asn1_dom_add_object(asn1_dom* dom, asn1_object* asn1) {
-	if(!dom->objects)
+int asn1_dom_add_object(asn1_dom* dom, asn1_object* asn1) {
+	int res = LEGACY_UNKNOWN_ERROR;
 
-		return false;
+	if(!dom->objects) goto cleanup;
+
 	if(dom->allocated==dom->used) {
 		asn1_object* tmp=(asn1_object*)realloc(dom->objects, 1.5*dom->allocated*sizeof(asn1_object));
-		if(!tmp)
-			return false;
+		if(!tmp) {
+			res = LEGACY_OUT_OF_MEMORY;
+			goto cleanup;
+		}
 		dom->objects=tmp;
 	}
 	dom->objects[dom->used]=(*asn1);
 	dom->used++;
 
-	return true;
+	res = LEGACY_OK;
+cleanup:
+
+	return res;
 }
 
 void asn1_dom_dump(asn1_dom* dom) {
@@ -214,42 +221,47 @@ int asn1_dom_get_body_size(const asn1_dom* dom, ASN1POSITION index) {
 	return dom->objects[index].body_length;
 }
 
-bool asn1_parse_object(asn1_dom* dom, const unsigned char* data, size_t length,
-					   unsigned level, unsigned offset) {
-
+int asn1_parse_object(asn1_dom* dom, const unsigned char* data, size_t length, unsigned level, unsigned offset) {
+	int res = LEGACY_UNKNOWN_ERROR;
 	asn1_object asn1={0};
 	int pos=0;
 
 	while(pos<length) {
 
 		memset(&asn1, 0, sizeof(asn1));
-		if(!asn1_parse_header(data+pos+offset, length-pos, &asn1))
-			return false;
+		res = asn1_parse_header(data+pos+offset, length-pos, &asn1);
+		if (res != LEGACY_OK) goto cleanup;
 
 		asn1.offset=pos+offset;
 		asn1.level=level;
 
-		if(!asn1_dom_add_object(dom, &asn1))
-			return false;
+		res = asn1_dom_add_object(dom, &asn1);
+		if (res != LEGACY_OK) goto cleanup;
 
-		if(asn1.structured)
-			if(!asn1_parse_object(dom, data, asn1.body_length, level+1, pos+asn1.header_length+offset))
-				return false;
+		if(asn1.structured) {
+			res = asn1_parse_object(dom, data, asn1.body_length, level+1, pos+asn1.header_length+offset);
+			if (res != LEGACY_OK) goto cleanup;
+		}
 
 		pos+=(asn1.header_length+asn1.body_length);
 	}
 
-	if(pos!=length)
-		return false;
+	if(pos!=length) {
+		res = LEGACY_ASN1_PARSING_ERROR;
+		goto cleanup;
+	}
 
 	dom->data=data;
+	res = LEGACY_OK;
 
-	return true;
+cleanup:
+
+	return res;
 }
 
 
-bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *asn1) {
-
+int asn1_parse_header(const unsigned char* data, size_t length, asn1_object* asn1){
+	int res = LEGACY_ASN1_PARSING_ERROR;
 	unsigned pos = 1;
 	long tag = 0, l=0;
 	unsigned i;
@@ -266,7 +278,7 @@ bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *as
 		//while the first bit is set there are more tag bytes following
 		do {
 			if (pos == length)
-				return false;
+				goto cleanup;
 
 			//seven leftmost bits are used
 			tag = tag * 128 + data[pos] - 0x80;
@@ -297,7 +309,7 @@ bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *as
 		while (data[pos + l] != 0 || data[pos + l + 1] != 0) {
 			l += 1;
 			if(pos + l + 1 > length -1)
-				return false;
+				goto cleanup;
 		}
 
 		asn1->body_length = l + 2;
@@ -306,9 +318,13 @@ bool asn1_parse_header(const unsigned char* data, size_t length, asn1_object *as
 	}
 
 	if(asn1->header_length + asn1->body_length > length)
-		return false;
+		goto cleanup;
 
-	return true;
+	res = LEGACY_OK;
+
+cleanup:
+
+	return res;
 }
 
 uint64_t decode_integer(const unsigned char* data, size_t length)
@@ -317,7 +333,7 @@ uint64_t decode_integer(const unsigned char* data, size_t length)
 	size_t i;
 
 	if (length > 8)
-		return false;
+		return 0;
 
 	for (i=0; i < length; i++)
 	{
