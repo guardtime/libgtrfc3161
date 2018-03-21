@@ -16,6 +16,9 @@ typedef struct mem_buf_st {
 } mem_buf;
 
 void set_mem_buf(mem_buf *b, const unsigned char* ptr, size_t size) {
+	if (b == NULL || ptr == NULL)
+		return;
+
 	b->ptr=ptr;
 	b->size=size;
 }
@@ -46,6 +49,11 @@ int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fiel
 	asn1_dom *signed_attr=NULL;
 	asn1_dom *time_signature=NULL;
 	ASN1POSITION pos, tst_info_pos, signed_attr_pos, time_signature_pos;
+
+	if (buffer == NULL || fields == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	dom=asn1_dom_new(100);
 	tst_info=asn1_dom_new(100);
@@ -175,6 +183,9 @@ static inline unsigned get_hash_size(unsigned char id) {
 
 bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 {
+	if (chain == NULL)
+		return false;
+
 	if (length - pos < 3)
 		return false;
 
@@ -198,6 +209,9 @@ bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 }
 
 int get_chain_item_size(const unsigned char* chain, size_t position) {
+	if (chain == NULL)
+		return 0;
+
 	return (get_hash_size(chain[position + 2])) + 4;
 }
 
@@ -207,6 +221,10 @@ bool is_metahash(const unsigned char *chain, size_t size)
 
 	//Hash code 3 with length 28 is a hardcoded for formerly used SHA2-224
 	const size_t hash_len = 28;
+
+	if (chain == NULL)
+		return false;
+
 	if (size <= 0) {
 		/* No hash step. */
 		return false;
@@ -239,6 +257,9 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 	static const uint32_t NATIONAL_LEVEL = 39;
 	static const uint32_t TOP_LEVEL = 60;
 	uint32_t level_byte;
+
+	if (chain == NULL)
+		return false;
 
 	// peek at posistion + 2 element level byte, if this is a known global depth value
 	// then we are currently at an aggregator chain border
@@ -306,6 +327,11 @@ int convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC3
 	KSI_PublicationData *publication_data=NULL;
 	KSI_PKISignedData *pki_signature = NULL;
 	KSI_Utf8String *utf8_string = NULL;
+
+	if (ctx == NULL || builder == NULL || rfc3161 == NULL || fields == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	res = KSI_DataHash_fromDigest(ctx, 1, fields->input_hash.ptr, 32, &hash);
 	if (res != KSI_OK) goto done;
@@ -387,13 +413,20 @@ int extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 	KSI_HashChainLinkList *links=NULL;
 	KSI_DataHash *hash=NULL;
 	KSI_OctetString *legacy_id=NULL;
-	size_t current_pos=*chain_pos;
+	size_t current_pos;
 	size_t chain_item_count = 0;
 	unsigned char level_byte;
 	bool is_left_link;
 	size_t hash_size;
 	int algo_id=-1;
 	unsigned char link_algo_id=-1;
+
+	if (ctx == NULL || ksi_chain == NULL || chain == NULL || chain_pos == NULL || input_level_byte == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
+
+	current_pos=*chain_pos;
 
 	res = KSI_HashChainLinkList_new(&links);
 	if (res != KSI_OK) goto done;
@@ -497,6 +530,11 @@ int convert_aggregation_chains(KSI_CTX *ctx, const unsigned char *chain, size_t 
 	unsigned char level_byte = 0;
 	KSI_AggregationHashChain *ksi_chain=NULL;
 
+	if (ctx == NULL || chain == NULL || ksi_chain_list == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
+
 	// Extraxt all legacy aggregator chains and convert to KSI
 	while (chain_pos < chain_size)
 	{
@@ -529,6 +567,11 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 	KSI_HashChainLinkList *links = NULL;
 	KSI_HashChainLink *link = NULL;
 	KSI_DataHash *hash = NULL;
+
+	if (ctx == NULL || chain == NULL || ksi_calendar_chain == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	res = KSI_HashChainLinkList_new(&links);
 	if (res != KSI_OK) goto done;
@@ -611,6 +654,11 @@ int calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList* chains,
 	KSI_HashChainLinkList *links = NULL;
 	KSI_Integer *hashId = NULL;
 
+	if (ctx == NULL || chains == NULL || input_hash == NULL || output_hash == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
+
 	chains_count=KSI_AggregationHashChainList_length(chains);
 
 	hash = KSI_DataHash_ref(input_hash);
@@ -652,6 +700,11 @@ int copy_indices(KSI_CTX *ctx, KSI_AggregationHashChain *chain, KSI_IntegerList 
 	KSI_IntegerList *last_indices = NULL;
 	KSI_Integer  *tmp_integer = NULL, *tmp_index = NULL;
 	size_t j;
+
+	if (ctx == NULL || chain == NULL || indices == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	res = KSI_AggregationHashChain_getChainIndex(chain, &last_indices);
 	if (res != KSI_OK) goto done;
@@ -698,6 +751,11 @@ int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fie
 	uint64_t index;
 	int is_left;
 	size_t j;
+
+	if (ctx == NULL || builder == NULL || fields == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	res = KSI_RFC3161_new(ctx, &rfc3161);
 	if (res != KSI_OK) goto done;
@@ -854,6 +912,11 @@ int convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, size
 	rfc3161_fields fields;
 	KSI_SignatureBuilder *builder = NULL;
 	KSI_Signature *out = NULL;
+
+	if (ctx == NULL || rfc3161_signature == NULL || ksi_signature == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	memset(&fields, 0, sizeof(fields));
 

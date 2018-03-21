@@ -9,8 +9,12 @@
 #include "tsconvert.h"
 
 bool save_file(const char *file_name, const unsigned char *data, size_t length) {
-	int fd = open(file_name, O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR);
+	int fd = -1;
 
+	if (file_name == NULL || data == NULL)
+		return false;
+
+	fd = open(file_name, O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR);
 	if (fd < 0)
 		return false;
 
@@ -35,6 +39,9 @@ unsigned char* load_file(const char *file_name, size_t *length) {
 	int fd=-1;
 	bool success=false;
 	unsigned char* data;
+
+	if (file_name == NULL || length == NULL)
+		return NULL;
 
 	fd=open(file_name, O_RDONLY);
 	if(fd==-1)
