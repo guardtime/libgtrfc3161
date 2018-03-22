@@ -50,7 +50,7 @@ unsigned char* load_file(const char *file_name, size_t *length) {
 	unsigned size = lseek(fd, 0L, SEEK_END);
 	lseek(fd, 0L, SEEK_SET);
 
-	if(!(data=(unsigned char*)malloc(size))) {
+	if(!(data=(unsigned char*)KSI_malloc(size))) {
 		close(fd);
 		return NULL;
 	}
@@ -66,7 +66,7 @@ done:
 		close(fd);
 
 	if(!success) {
-		free(data);
+		KSI_free(data);
 		return NULL;
 	}
 
@@ -121,12 +121,9 @@ int main(int argc, char** argv) {
 	res = LEGACY_OK;
 
 done:
-	if(buffer != NULL)
-		free(buffer);
 
-	if(outbuf != NULL)
-		free(outbuf);
-
+	KSI_free(buffer);
+	KSI_free(outbuf);
 	KSI_Signature_free(ksi_signature);
 	KSI_CTX_free(ctx);
 

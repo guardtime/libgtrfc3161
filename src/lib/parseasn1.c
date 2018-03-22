@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "parseasn1.h"
 #include "tsconvert.h"
@@ -43,7 +44,7 @@ asn1_dom* asn1_dom_new(size_t initial_size) {
 
 	if (initial_size == 0)
 		return NULL;
-	dom=(asn1_dom*)calloc(sizeof(asn1_dom), 1);
+	dom=(asn1_dom*)KSI_calloc(sizeof(asn1_dom), 1);
 	if(!dom)
 		return NULL;
 
@@ -60,7 +61,7 @@ int asn1_dom_init(asn1_dom* dom, size_t initial_size) {
 	if (dom == NULL || initial_size == 0)
 		return LEGACY_INVALID_ARGUMENT;
 
-	dom->objects=(asn1_object*)malloc(initial_size*sizeof(asn1_object));
+	dom->objects=(asn1_object*)KSI_malloc(initial_size*sizeof(asn1_object));
 
 	if(!dom->objects)
 		return LEGACY_OUT_OF_MEMORY;
@@ -72,13 +73,27 @@ int asn1_dom_init(asn1_dom* dom, size_t initial_size) {
 }
 
 void asn1_dom_free(asn1_dom* dom) {
-	if(!dom)
-		return;
+	if(dom != NULL) {
+		KSI_free(dom->objects);
+		KSI_free(dom);
+	}
+}
 
-	if(dom->objects)
-		free(dom->objects);
+static void *asn1_dom_realloc(void *ptr, size_t old_size, size_t new_size) {
+	void *tmp = NULL;
 
-	free(dom);
+	if (ptr == NULL || old_size == 0 || new_size == 0)
+		return NULL;
+
+	tmp = KSI_malloc(new_size);
+	if (tmp == NULL)
+		return NULL;
+	else {
+		size_t n = old_size < new_size ? old_size : new_size;
+		memcpy(tmp, ptr, n);
+		KSI_free(ptr);
+		return tmp;
+	}
 }
 
 int asn1_dom_add_object(asn1_dom* dom, asn1_object* asn1) {
@@ -90,12 +105,13 @@ int asn1_dom_add_object(asn1_dom* dom, asn1_object* asn1) {
 	}
 
 	if(dom->allocated==dom->used) {
-		asn1_object* tmp=(asn1_object*)realloc(dom->objects, 1.5*dom->allocated*sizeof(asn1_object));
+		asn1_object* tmp=(asn1_object*)asn1_dom_realloc(dom->objects, dom->allocated*sizeof(asn1_object), 1.5*dom->allocated*sizeof(asn1_object));
 		if(!tmp) {
 			res = LEGACY_OUT_OF_MEMORY;
 			goto cleanup;
 		}
 		dom->objects=tmp;
+		dom->allocated = 1.5*dom->allocated;
 	}
 	dom->objects[dom->used]=(*asn1);
 	dom->used++;

@@ -164,14 +164,11 @@ int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fiel
 	res = LEGACY_OK;
 
 done:
-	if(dom)
-		asn1_dom_free(dom);
-	if(tst_info)
-		asn1_dom_free(tst_info);
-	if(signed_attr)
-		asn1_dom_free(signed_attr);
-	if(time_signature)
-		asn1_dom_free(time_signature);
+
+	asn1_dom_free(dom);
+	asn1_dom_free(tst_info);
+	asn1_dom_free(signed_attr);
+	asn1_dom_free(time_signature);
 
 	return res;
 }
