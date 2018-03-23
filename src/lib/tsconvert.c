@@ -43,7 +43,7 @@ typedef struct rfc3161_fields_st{
 } rfc3161_fields;
 
 int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fields* fields) {
-	int res = LEGACY_ASN1_PARSING_ERROR;
+	int res = LEGACY_UNKNOWN_ERROR;
 	asn1_dom *dom=NULL;
 	asn1_dom *tst_info=NULL;
 	asn1_dom *signed_attr=NULL;
@@ -55,28 +55,29 @@ int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fiel
 		goto done;
 	}
 
-	dom=asn1_dom_new(100);
-	tst_info=asn1_dom_new(100);
-	signed_attr=asn1_dom_new(100);
-	time_signature=asn1_dom_new(100);
-
-	if(!dom || !tst_info || !signed_attr || !time_signature)
-		goto done;
+	res = asn1_dom_new(100, &dom);
+	if (res != LEGACY_OK) goto done;
+	res = asn1_dom_new(100, &tst_info);
+	if (res != LEGACY_OK) goto done;
+	res = asn1_dom_new(100, &signed_attr);
+	if (res != LEGACY_OK) goto done;
+	res = asn1_dom_new(100, &time_signature);
+	if (res != LEGACY_OK) goto done;
 
 	res = asn1_parse_object(dom, buffer, size, 0, 0);
 	if (res != LEGACY_OK) goto done;
 
 	//find encapsulated TSTInfo object
-	if((tst_info_pos=asn1_dom_get_subobject(dom, "1.0.2.1.0", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(dom, "1.0.2.1.0", 0, &tst_info_pos);
+	if (res != LEGACY_OK) goto done;
 
 	//parse TSTInfo here
 	res = asn1_parse_object(tst_info, asn1_dom_get_body_ptr(dom, tst_info_pos), asn1_dom_get_body_size(dom, tst_info_pos), 0, 0);
 	if (res != LEGACY_OK) goto done;
 
 	//find input hash inside TSTInfo
-	if((pos=asn1_dom_get_subobject(tst_info, "2.1", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(tst_info, "2.1", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	//an algorithm identifier has to be prepended to input hash in KSI format
 	set_mem_buf(&fields->input_hash, asn1_dom_get_body_ptr(tst_info, pos), asn1_dom_get_body_size(tst_info, pos));
@@ -89,16 +90,16 @@ int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fiel
 
 
 	//find signed attributes object
-	if((signed_attr_pos=asn1_dom_get_subobject(dom, "1.0.4.0.3", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(dom, "1.0.4.0.3", 0, &signed_attr_pos);
+	if (res != LEGACY_OK) goto done;
 
 	//parse signed attributes here
 	res = asn1_parse_object(signed_attr, asn1_dom_get_object_ptr(dom, signed_attr_pos), asn1_dom_get_object_size(dom, signed_attr_pos), 0, 0);
 	if (res != LEGACY_OK) goto done;
 
 	//find signed data inside signed attributes
-	if((pos=asn1_dom_get_subobject(signed_attr, "1.1.0", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(signed_attr, "1.1.0", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	//NB!
 	//Here the first byte is 0xa0 (class 2/structured/tag=0)
@@ -117,47 +118,48 @@ int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fiel
 				signed_attr->objects[pos].offset-asn1_dom_get_object_size(signed_attr, pos));
 
 	//find time_signature object
-	if((time_signature_pos=asn1_dom_get_subobject(dom, "1.0.4.0.5", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(dom, "1.0.4.0.5", 0, &time_signature_pos);
+	if (res != LEGACY_OK) goto done;
 
 	//parse signed attributes here
 	res = asn1_parse_object(time_signature, asn1_dom_get_body_ptr(dom, time_signature_pos), asn1_dom_get_body_size(dom, time_signature_pos), 0, 0);
 	if (res != LEGACY_OK) goto done;
 
 	//location chain inside GT timesignature
-	if((pos=asn1_dom_get_subobject(time_signature, "0", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(time_signature, "0", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	set_mem_buf(&fields->location_chain, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	//history chain inside GT timesignature
-	if((pos=asn1_dom_get_subobject(time_signature, "1", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(time_signature, "1", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	set_mem_buf(&fields->history_chain, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	//publication time inside GT timesignature
-	if((pos=asn1_dom_get_subobject(time_signature, "2.0", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(time_signature, "2.0", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
-	fields->publication_time=asn1_decode_integer(time_signature, pos);
+	res = asn1_decode_integer(time_signature, pos, &fields->publication_time);
+	if (res != LEGACY_OK) goto done;
 	//set_mem_buf(&fields->published_data, asn1_dom_get_object_ptr(time_signature, pos), asn1_dom_get_object_size(time_signature, pos));
 
 	//publication hash inside GT timesignature
-	if((pos=asn1_dom_get_subobject(time_signature, "2.1", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(time_signature, "2.1", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	set_mem_buf(&fields->publication_hash, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	//signature value inside GT timesignature
-	if((pos=asn1_dom_get_subobject(time_signature, "3.1", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(time_signature, "3.1", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	set_mem_buf(&fields->signature, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	//find certificate
-	if((pos=asn1_dom_get_subobject(dom, "1.0.3", 0))==-1)
-		goto done;
+	res = asn1_dom_get_subobject(dom, "1.0.3", 0, &pos);
+	if (res != LEGACY_OK) goto done;
 
 	set_mem_buf(&fields->certficate, asn1_dom_get_body_ptr(dom, pos), asn1_dom_get_body_size(dom, pos));
 
@@ -314,23 +316,21 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 		res = KSI_##parent##_set##child(target, tmp_integer); if (res != KSI_OK) { KSI_Integer_free(tmp_integer); goto done; } \
 	} while (0)
 
-int convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC3161 *rfc3161, rfc3161_fields *fields)
+int convert_rfc3161_fields(KSI_CTX *ctx, rfc3161_fields *fields, KSI_RFC3161 **out)
 {
 	int res = LEGACY_UNKNOWN_ERROR;
-	static const char *oid= "1.2.840.113549.1.1.11";
-	uint32_t cert_id;
 	KSI_DataHash *hash=NULL;
-	KSI_CalendarAuthRec *cal_auth_rec=NULL;
-	KSI_PublicationData *publication_data=NULL;
-	KSI_PKISignedData *pki_signature = NULL;
-	KSI_Utf8String *utf8_string = NULL;
+	KSI_RFC3161 *rfc3161 = NULL;
 
-	if (ctx == NULL || builder == NULL || rfc3161 == NULL || fields == NULL) {
+	if (ctx == NULL || fields == NULL || out == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
 
 	res = KSI_DataHash_fromDigest(ctx, 1, fields->input_hash.ptr, 32, &hash);
+	if (res != KSI_OK) goto done;
+
+	res = KSI_RFC3161_new(ctx, &rfc3161);
 	if (res != KSI_OK) goto done;
 
 	res = KSI_RFC3161_setInputHash(rfc3161, hash);
@@ -345,11 +345,32 @@ int convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC3
 	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrPrefix, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size);
 	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrSuffix, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size);
 
-	res = KSI_SignatureBuilder_setRFC3161(builder, rfc3161);
-	if (res != KSI_OK) goto done;
+	*out = rfc3161;
+	rfc3161 = NULL;
+	res = LEGACY_OK;
 
-	res = KSI_CalendarAuthRec_new(ctx, &cal_auth_rec);
-	if (res != KSI_OK) goto done;
+done:
+
+	KSI_DataHash_free(hash);
+	KSI_RFC3161_free(rfc3161);
+	return res;
+}
+
+int convert_calendar_auth_rec(KSI_CTX *ctx, rfc3161_fields *fields, KSI_CalendarAuthRec **out)
+{
+	int res = LEGACY_UNKNOWN_ERROR;
+	static const char *oid= "1.2.840.113549.1.1.11";
+	uint32_t cert_id;
+	KSI_DataHash *hash=NULL;
+	KSI_CalendarAuthRec *cal_auth_rec=NULL;
+	KSI_PublicationData *publication_data=NULL;
+	KSI_PKISignedData *pki_signature = NULL;
+	KSI_Utf8String *utf8_string = NULL;
+
+	if (ctx == NULL || fields == NULL || out == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
 
 	res = KSI_PublicationData_new(ctx, &publication_data);
 	if (res != KSI_OK) goto done;
@@ -363,6 +384,9 @@ int convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC3
 	hash = NULL;
 
 	SET_INTEGER(publication_data, PublicationData, Time, fields->publication_time);
+
+	res = KSI_CalendarAuthRec_new(ctx, &cal_auth_rec);
+	if (res != KSI_OK) goto done;
 
 	res = KSI_CalendarAuthRec_setPublishedData(cal_auth_rec, publication_data);
 	if (res != KSI_OK) goto done;
@@ -387,9 +411,8 @@ int convert_rfc3161_fields(KSI_CTX *ctx, KSI_SignatureBuilder *builder, KSI_RFC3
 	if (res != KSI_OK) goto done;
 	pki_signature = NULL;
 
-	res = KSI_SignatureBuilder_setCalendarAuthRecord(builder, cal_auth_rec);
-	if (res != KSI_OK) goto done;
-
+	*out = cal_auth_rec;
+	cal_auth_rec = NULL;
 	res = LEGACY_OK;
 
 done:
@@ -402,14 +425,14 @@ done:
 	return res;
 }
 
-int extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
-						const unsigned char *chain, size_t chain_size,
-						size_t *chain_pos, unsigned char* input_level_byte) {
+int extract_aggr_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_size,
+						size_t *chain_pos, unsigned char* input_level_byte, KSI_AggregationHashChain **out) {
 	int res = LEGACY_UNKNOWN_ERROR;
 	KSI_HashChainLink *link=NULL;
 	KSI_HashChainLinkList *links=NULL;
 	KSI_DataHash *hash=NULL;
 	KSI_OctetString *legacy_id=NULL;
+	KSI_AggregationHashChain *ksi_chain = NULL;
 	size_t current_pos;
 	size_t chain_item_count = 0;
 	unsigned char level_byte;
@@ -418,7 +441,7 @@ int extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 	int algo_id=-1;
 	unsigned char link_algo_id=-1;
 
-	if (ctx == NULL || ksi_chain == NULL || chain == NULL || chain_pos == NULL || input_level_byte == NULL) {
+	if (ctx == NULL || out == NULL || chain == NULL || chain_pos == NULL || input_level_byte == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
@@ -505,12 +528,17 @@ int extract_aggr_chain(KSI_CTX *ctx, KSI_AggregationHashChain *ksi_chain,
 	if (algo_id==-1)
 		algo_id=1;
 
+	res = KSI_AggregationHashChain_new(ctx, &ksi_chain);
+	if (res != KSI_OK) goto done;
+
 	SET_INTEGER(ksi_chain, AggregationHashChain, AggrHashId, algo_id);
 
 	res = KSI_AggregationHashChain_setChain(ksi_chain, links);
 	if (res != KSI_OK) goto done;
-	links = NULL;
 
+	*out = ksi_chain;
+	ksi_chain = NULL;
+	links = NULL;
 	res = LEGACY_OK;
 
 done:
@@ -518,43 +546,48 @@ done:
 	KSI_DataHash_free(hash);
 	KSI_HashChainLink_free(link);
 	KSI_HashChainLinkList_free(links);
-	return res;
-}
-
-int convert_aggregation_chains(KSI_CTX *ctx, const unsigned char *chain, size_t chain_size, KSI_AggregationHashChainList *ksi_chain_list) {
-	int res = LEGACY_UNKNOWN_ERROR;
-	size_t chain_pos = 0;
-	unsigned char level_byte = 0;
-	KSI_AggregationHashChain *ksi_chain=NULL;
-
-	if (ctx == NULL || chain == NULL || ksi_chain_list == NULL) {
-		res = LEGACY_INVALID_ARGUMENT;
-		goto done;
-	}
-
-	// Extraxt all legacy aggregator chains and convert to KSI
-	while (chain_pos < chain_size)
-	{
-		res = KSI_AggregationHashChain_new(ctx, &ksi_chain);
-		if (res != KSI_OK) goto done;
-
-		// extract the chain
-		res = extract_aggr_chain(ctx, ksi_chain, chain, chain_size, &chain_pos, &level_byte);
-		if (res != LEGACY_OK) goto done;
-
-		res = KSI_AggregationHashChainList_append(ksi_chain_list, ksi_chain);
-		if (res != KSI_OK) goto done;
-		ksi_chain = NULL;
-	}
-
-	res = LEGACY_OK;
-
-done:
 	KSI_AggregationHashChain_free(ksi_chain);
 	return res;
 }
 
-int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_size, KSI_CalendarHashChain *ksi_calendar_chain) {
+int convert_aggregation_chains(KSI_CTX *ctx, const unsigned char *chain, size_t chain_size, KSI_AggregationHashChainList **out) {
+	int res = LEGACY_UNKNOWN_ERROR;
+	size_t chain_pos = 0;
+	unsigned char level_byte = 0;
+	KSI_AggregationHashChain *ksi_chain=NULL;
+	KSI_AggregationHashChainList *aggr_chains = NULL;
+
+	if (ctx == NULL || chain == NULL || out == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto done;
+	}
+
+	res = KSI_AggregationHashChainList_new(&aggr_chains);
+	if (res != KSI_OK) goto done;
+
+	// Extraxt all legacy aggregator chains and convert to KSI
+	while (chain_pos < chain_size)
+	{
+		// extract the chain
+		res = extract_aggr_chain(ctx, chain, chain_size, &chain_pos, &level_byte, &ksi_chain);
+		if (res != LEGACY_OK) goto done;
+
+		res = KSI_AggregationHashChainList_append(aggr_chains, ksi_chain);
+		if (res != KSI_OK) goto done;
+		ksi_chain = NULL;
+	}
+
+	*out = aggr_chains;
+	aggr_chains = NULL;
+	res = LEGACY_OK;
+
+done:
+	KSI_AggregationHashChain_free(ksi_chain);
+	KSI_AggregationHashChainList_free(aggr_chains);
+	return res;
+}
+
+int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_size, KSI_CalendarHashChain **out) {
 	int res = LEGACY_UNKNOWN_ERROR;
 	size_t current_pos=0;
 	unsigned char level_byte;
@@ -564,8 +597,9 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 	KSI_HashChainLinkList *links = NULL;
 	KSI_HashChainLink *link = NULL;
 	KSI_DataHash *hash = NULL;
+	KSI_CalendarHashChain *calendar_chain = NULL;
 
-	if (ctx == NULL || chain == NULL || ksi_calendar_chain == NULL) {
+	if (ctx == NULL || chain == NULL || out == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
@@ -627,8 +661,14 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 		goto done;
 	}
 
-	res = KSI_CalendarHashChain_setHashChain(ksi_calendar_chain, links);
+	res = KSI_CalendarHashChain_new(ctx, &calendar_chain);
 	if (res != KSI_OK) goto done;
+
+	res = KSI_CalendarHashChain_setHashChain(calendar_chain, links);
+	if (res != KSI_OK) goto done;
+
+	*out = calendar_chain;
+	calendar_chain = NULL;
 	links = NULL;
 
 	res = LEGACY_OK;
@@ -637,6 +677,7 @@ done:
 	KSI_HashChainLinkList_free(links);
 	KSI_HashChainLink_free(link);
 	KSI_DataHash_free(hash);
+	KSI_CalendarHashChain_free(calendar_chain);
 	return res;
 }
 
@@ -691,44 +732,53 @@ done:
 	return res;
 }
 
-int copy_indices(KSI_CTX *ctx, KSI_AggregationHashChain *chain, KSI_IntegerList *indices) {
+int copy_indices(KSI_CTX *ctx, KSI_AggregationHashChain *chain, KSI_IntegerList **out) {
 	int res = LEGACY_UNKNOWN_ERROR;
 	int indices_count;
 	KSI_IntegerList *last_indices = NULL;
+	KSI_IntegerList *indices = NULL;
 	KSI_Integer  *tmp_integer = NULL, *tmp_index = NULL;
 	size_t j;
 
-	if (ctx == NULL || chain == NULL || indices == NULL) {
+	if (ctx == NULL || out == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
 
-	res = KSI_AggregationHashChain_getChainIndex(chain, &last_indices);
+	res = KSI_IntegerList_new(&indices);
 	if (res != KSI_OK) goto done;
 
-	indices_count=KSI_IntegerList_length(last_indices);
-
-	for (j = 0; j < indices_count; j++)
-	{
-		res = KSI_IntegerList_elementAt(last_indices, j, &tmp_integer);
+	if (chain != NULL) {
+		res = KSI_AggregationHashChain_getChainIndex(chain, &last_indices);
 		if (res != KSI_OK) goto done;
 
-		res = KSI_Integer_new(ctx, KSI_Integer_getUInt64(tmp_integer), &tmp_index);
-		if (res != KSI_OK) goto done;
+		indices_count=KSI_IntegerList_length(last_indices);
 
-		res = KSI_IntegerList_append(indices, tmp_index);
-		if (res != KSI_OK) goto done;
-		tmp_index = NULL;
+		for (j = 0; j < indices_count; j++)
+		{
+			res = KSI_IntegerList_elementAt(last_indices, j, &tmp_integer);
+			if (res != KSI_OK) goto done;
+
+			res = KSI_Integer_new(ctx, KSI_Integer_getUInt64(tmp_integer), &tmp_index);
+			if (res != KSI_OK) goto done;
+
+			res = KSI_IntegerList_append(indices, tmp_index);
+			if (res != KSI_OK) goto done;
+			tmp_index = NULL;
+		}
 	}
 
+	*out = indices;
+	indices = NULL;
 	res = LEGACY_OK;
 
 done:
 	KSI_Integer_free(tmp_index);
+	KSI_IntegerList_free(indices);
 	return res;
 }
 
-int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fields *fields) {
+int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fields *fields) {
 
 	int res = LEGACY_UNKNOWN_ERROR;
 	time_t aggregation_time;
@@ -741,6 +791,7 @@ int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fie
 	KSI_HashChainLinkList *links = NULL;
 	KSI_HashChainLink *link = NULL;
 	KSI_RFC3161 *rfc3161 = NULL;
+	KSI_CalendarAuthRec *cal_auth_rec = NULL;
 	KSI_DataHasher *hasher=NULL;
 	KSI_DataHash *hash1 = NULL, *hash2 = NULL, *output_hash = NULL;
 	const unsigned char *data = NULL;
@@ -754,16 +805,19 @@ int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fie
 		goto done;
 	}
 
-	res = KSI_RFC3161_new(ctx, &rfc3161);
-	if (res != KSI_OK) goto done;
-
-	res = convert_rfc3161_fields(ctx, builder, rfc3161, fields);
+	res = convert_rfc3161_fields(ctx, fields, &rfc3161);
 	if (res != LEGACY_OK) goto done;
 
-	res = KSI_CalendarHashChain_new(ctx, &calendar_chain);
+	res = KSI_SignatureBuilder_setRFC3161(builder, rfc3161);
 	if (res != KSI_OK) goto done;
 
-	res = convert_calendar_chain(ctx, fields->history_chain.ptr, fields->history_chain.size, calendar_chain);
+	res = convert_calendar_auth_rec(ctx, fields, &cal_auth_rec);
+	if (res != LEGACY_OK) goto done;
+
+	res = KSI_SignatureBuilder_setCalendarAuthRecord(builder, cal_auth_rec);
+	if (res != KSI_OK) goto done;
+
+	res = convert_calendar_chain(ctx, fields->history_chain.ptr, fields->history_chain.size, &calendar_chain);
 	if (res != LEGACY_OK) goto done;
 
 	SET_INTEGER(calendar_chain, CalendarHashChain, PublicationTime, fields->publication_time);
@@ -774,10 +828,7 @@ int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fie
 	SET_INTEGER(rfc3161, RFC3161, AggregationTime, aggregation_time);
 	SET_INTEGER(calendar_chain, CalendarHashChain, AggregationTime, aggregation_time);
 
-	res = KSI_AggregationHashChainList_new(&aggr_chains);
-	if (res != KSI_OK) goto done;
-
-	res = convert_aggregation_chains(ctx, fields->location_chain.ptr, fields->location_chain.size, aggr_chains);
+	res = convert_aggregation_chains(ctx, fields->location_chain.ptr, fields->location_chain.size, &aggr_chains);
 	if (res != LEGACY_OK) goto done;
 
 	chains_count=KSI_AggregationHashChainList_length(aggr_chains);
@@ -798,14 +849,9 @@ int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fie
 
 		SET_INTEGER(aggr_chain, AggregationHashChain, AggregationTime, aggregation_time);
 
-		res = KSI_IntegerList_new(&indices);
-		if (res != KSI_OK) goto done;
-
 		//copy the upper chain indices into the lower one
-		if (last_chain) {
-			res = copy_indices(ctx, last_chain, indices);
-			if (res != LEGACY_OK) goto done;
-		}
+		res = copy_indices(ctx, last_chain, &indices);
+		if (res != LEGACY_OK) goto done;
 
 		index = 1;
 
@@ -841,10 +887,7 @@ int create_ksi_sgnature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fie
 	}
 
 	//Add indices to rfc3161 record
-	res = KSI_IntegerList_new(&indices);
-	if (res != KSI_OK) goto done;
-
-	res = copy_indices(ctx, last_chain, indices);
+	res = copy_indices(ctx, last_chain, &indices);
 	if (res != LEGACY_OK) goto done;
 
 	res = KSI_RFC3161_setChainIndex(rfc3161, indices);
@@ -896,6 +939,7 @@ done:
 	KSI_DataHash_free(output_hash);
 	KSI_AggregationHashChainList_free(aggr_chains);
 	KSI_RFC3161_free(rfc3161);
+	KSI_CalendarAuthRec_free(cal_auth_rec);
 	KSI_CalendarHashChain_free(calendar_chain);
 	KSI_IntegerList_free(indices);
 	KSI_Integer_free(tmp_index);
@@ -923,7 +967,7 @@ int convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, size
 	res = KSI_SignatureBuilder_open(ctx, &builder);
 	if (res != KSI_OK) goto done;
 
-	res = create_ksi_sgnature(ctx, builder, &fields);
+	res = create_ksi_signature(ctx, builder, &fields);
 	if (res != LEGACY_OK) goto done;
 
 	res = KSI_SignatureBuilder_close(builder, 0, &out);

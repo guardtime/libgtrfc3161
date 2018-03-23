@@ -39,37 +39,39 @@ const char* find_tag_name(unsigned char tag) {
 	return NULL;
 }
 
-asn1_dom* asn1_dom_new(size_t initial_size) {
-	asn1_dom* dom = NULL;
+int asn1_dom_new(size_t initial_size, asn1_dom **out) {
+	int res = LEGACY_UNKNOWN_ERROR;
+	asn1_dom *tmp = NULL;
 
-	if (initial_size == 0)
-		return NULL;
-	dom=(asn1_dom*)KSI_calloc(sizeof(asn1_dom), 1);
-	if(!dom)
-		return NULL;
-
-	if(asn1_dom_init(dom, initial_size) != LEGACY_OK)
-	{
-		asn1_dom_free(dom);
-		return NULL;
+	if (out == NULL || initial_size == 0) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
 	}
 
-	return dom;
-}
+	tmp = (asn1_dom*)KSI_calloc(sizeof(asn1_dom), 1);
+	if (tmp == NULL) {
+		res = LEGACY_OUT_OF_MEMORY;
+		goto cleanup;
+	}
 
-int asn1_dom_init(asn1_dom* dom, size_t initial_size) {
-	if (dom == NULL || initial_size == 0)
-		return LEGACY_INVALID_ARGUMENT;
+	tmp->objects=(asn1_object*)KSI_malloc(initial_size*sizeof(asn1_object));
+	if(tmp->objects == NULL) {
+		res = LEGACY_OUT_OF_MEMORY;
+		goto cleanup;
+	}
 
-	dom->objects=(asn1_object*)KSI_malloc(initial_size*sizeof(asn1_object));
+	tmp->data = NULL;
+	tmp->allocated = initial_size;
+	tmp->used = 0;
 
-	if(!dom->objects)
-		return LEGACY_OUT_OF_MEMORY;
+	*out = tmp;
+	tmp = NULL;
+	res = LEGACY_OK;
 
-	dom->data=NULL;
-	dom->allocated=initial_size;
-	dom->used=0;
-	return LEGACY_OK;
+cleanup:
+
+	asn1_dom_free(tmp);
+	return res;
 }
 
 void asn1_dom_free(asn1_dom* dom) {
@@ -164,13 +166,14 @@ void asn1_dom_dump(asn1_dom* dom) {
 int asn1_dom_find_child(const asn1_dom* dom, ASN1POSITION parent_index, unsigned tag) {
 
 	unsigned i;
+	asn1_object *parent = NULL;
 
 	if (dom == NULL || dom->objects == NULL)
 		return -1;
 	if(parent_index>=dom->used-1)
 		return -1;
 
-	asn1_object *parent=&dom->objects[parent_index];
+	parent=&dom->objects[parent_index];
 
 	for(i=parent_index+1; i<dom->used && dom->objects[i].level > parent->level; i++)
 		if(dom->objects[i].tag==tag)
@@ -183,13 +186,14 @@ int asn1_dom_get_child(const asn1_dom* dom, ASN1POSITION parent_index, ASN1POSIT
 
 	int child_found=0;
 	unsigned i;
+	asn1_object *parent = NULL;
 
 	if (dom == NULL || dom->objects == NULL)
 		return -1;
 	if(parent_index>=dom->used-1)
 		return -1;
 
-	asn1_object *parent=&dom->objects[parent_index];
+	parent=&dom->objects[parent_index];
 
 	for(i=parent_index+1; i<dom->used; i++) {
 
@@ -206,31 +210,43 @@ int asn1_dom_get_child(const asn1_dom* dom, ASN1POSITION parent_index, ASN1POSIT
 	return -1;
 }
 
-int asn1_dom_get_subobject(const asn1_dom* dom, const char* path, ASN1POSITION index) {
-
+int asn1_dom_get_subobject(const asn1_dom* dom, const char* path, ASN1POSITION index, ASN1POSITION *out) {
+	int res = LEGACY_UNKNOWN_ERROR;
 	bool go=true;
 	const char *p=path;
 	int nextpos;
 
-	if (dom == NULL || path == NULL)
-		return -1;
+	if (dom == NULL || path == NULL || out == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
+	}
 
 	while(go) {
 		char *next=NULL;
 		nextpos=strtol(p, &next, 10);
 
-		if(p==next)
-			return -1;
+		if(p==next) {
+			res = LEGACY_INVALID_FORMAT;
+			goto cleanup;
+		}
 
-		if((index=asn1_dom_get_child(dom, index, nextpos))==-1)
-			return -1;
+		if((index=asn1_dom_get_child(dom, index, nextpos))==-1) {
+			res = LEGACY_INVALID_FORMAT;
+			goto cleanup;
+		}
 
 		if(*next==0)
-			return index;
+			break;
 		else if(*next=='.')
 			p=next+1;
 	}
-	return -1;
+
+	*out = index;
+	res = LEGACY_OK;
+
+cleanup:
+
+	return res;
 }
 
 const unsigned char* asn1_dom_get_object_ptr(const asn1_dom* dom, ASN1POSITION index) {
@@ -381,13 +397,16 @@ cleanup:
 	return res;
 }
 
-uint64_t decode_integer(const unsigned char* data, size_t length)
+int decode_integer(const unsigned char* data, size_t length, uint64_t *out)
 {
+	int res = LEGACY_UNKNOWN_ERROR;
 	uint64_t result=0;
 	size_t i;
 
-	if (data == NULL || length > 8)
-		return 0;
+	if (data == NULL || length > 8 || out == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
+	}
 
 	for (i=0; i < length; i++)
 	{
@@ -395,9 +414,14 @@ uint64_t decode_integer(const unsigned char* data, size_t length)
 		result += data[i];
 	}
 
-	return result;
+	*out = result;
+	res = LEGACY_OK;
+
+cleanup:
+
+	return res;
 }
 
-uint64_t asn1_decode_integer(asn1_dom* dom, ASN1POSITION index) {
-	return decode_integer(asn1_dom_get_body_ptr(dom, index), asn1_dom_get_body_size(dom, index));
+int asn1_decode_integer(asn1_dom* dom, ASN1POSITION index, uint64_t *out) {
+	return decode_integer(asn1_dom_get_body_ptr(dom, index), asn1_dom_get_body_size(dom, index), out);
 }
