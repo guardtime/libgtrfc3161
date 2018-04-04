@@ -113,5 +113,8 @@ done:
 	if(outbuf != NULL)
 		free(outbuf);
 
+	KSI_Signature_free(ksi_signature);
+	KSI_CTX_free(ctx);
+
 	return result;
 }
