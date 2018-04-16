@@ -61,12 +61,12 @@ fi
 
 # Define flags to control static build.
 AC_ARG_ENABLE(static-build,
-		[  --enable-static-build      link library statically with liblegacy.], :, :)
+		[  --enable-static-build      link libksi library statically with liblegacy.], :, :)
 AC_ARG_ENABLE(use-installed-lib,
-		[  --enable-use-installed-lib      use installed library instead of providing a path to a source directory.)], :, :)
+		[  --enable-use-installed-lib      use installed libksi library instead of providing a path to a source directory.)], :, :)
 
 # Define min libksi version dependency.
-libksi_ver="3.5"
+libksi_ver="3.10"
 
 # Checks for libraries.
 if test $enable_static_build = "yes" ; then
@@ -164,4 +164,5 @@ AC_CONFIG_FILES([src/lib/version.h])
 
 
 AC_CONFIG_FILES([GNUmakefile src/lib/GNUmakefile test/GNUmakefile doc/GNUmakefile src/example/GNUmakefile])
+AC_CONFIG_FILES([packaging/rpm/liblegacy.spec packaging/deb/control packaging/deb/rules])
 AC_OUTPUT
