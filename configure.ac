@@ -68,6 +68,10 @@ AC_ARG_ENABLE(use-installed-lib,
 # Define min libksi version dependency.
 libksi_ver="3.10"
 
+# Specify dependencies for DEB packaging.
+KSI_DEB_BUILD_DEPENDENCY="libksi-dev(>=$libksi_ver)"
+KSI_DEB_RUN_DEPENDENCY="libksi(>=$libksi_ver)"
+
 # Checks for libraries.
 if test $enable_static_build = "yes" ; then
 	# Perform the static build.
@@ -117,6 +121,8 @@ fi
 
 
 AC_SUBST(LIBKSI_BUILD_DEPENDENCY)
+AC_SUBST(KSI_DEB_BUILD_DEPENDENCY)
+AC_SUBST(KSI_DEB_RUN_DEPENDENCY)
 #AC_SUBST(RPM_BUILD_FLAGS)
 
 # Checks for libraries.

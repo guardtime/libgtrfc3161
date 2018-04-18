@@ -25,7 +25,7 @@ SUBDIRS = src/lib src/example test doc
 docdir = ${datadir}/doc/${PACKAGE}
 dist_doc_DATA = changelog license
 
-pkgconfigdir = $(libdir)/pkgconfig
+pkgconfigdir = ${libdir}/pkgconfig
 pkgconfig_DATA = liblegacy.pc
 
 EXTRA_DIST = VERSION changelog build-linux  license \
@@ -83,5 +83,3 @@ coverage-full: clean coverage-extended coverage-xml coverage-html
 
 clean-local:
 	rm -fr ${ZIPDOC_DIR} coverage coverage.xml coverage.info valgrind.xml test.log testsuite-xunit.xml
-	$(MAKE) -C doc clean
-	$(MAKE) -C test clean
