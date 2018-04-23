@@ -38,6 +38,9 @@ BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: libksi-devel
 
+# Dependencies are set in config.ac
+@LIBKSI_BUILD_DEPENDENCY@
+
 %description
 Client-side runtime libraries for converting
 Guardtime's legacy signatures to KSI signatures.
