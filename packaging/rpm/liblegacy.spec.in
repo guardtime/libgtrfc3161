@@ -52,7 +52,7 @@ Requires: %{name} = %{version}-%{release}
 Requires: libksi-devel
 
 %description devel
-Client-side runtime libraries for converting
+Client-side development library and headers for converting
 Guardtime's legacy signatures to KSI signatures.
 
 %prep

@@ -86,7 +86,7 @@ lib-build: build
 	mkdir $(FAKE_INSTALL)/DEBIAN
 	dpkg-gencontrol -P$(FAKE_INSTALL) -p$(package)
 	# dpkg-shlibdeps src/$(package)
-	dpkg-deb -b $(FAKE_INSTALL) ../
+	dpkg-deb -b $(FAKE_INSTALL) ..
 
 lib-dev-build: build
 	$(is-in-build-dir)
@@ -103,7 +103,7 @@ lib-dev-build: build
 	mkdir $(FAKE_INSTALL)/DEBIAN
 	dpkg-gencontrol -P$(FAKE_INSTALL) -p$(package)-dev
 	# dpkg-shlibdeps src/$(package)
-	dpkg-deb -b $(FAKE_INSTALL) ../	
+	dpkg-deb -b $(FAKE_INSTALL) ..	
 	
 binary: binary-indep binary-arch
 
