@@ -58,65 +58,30 @@ else
 fi
 
 
-
-# Define flags to control static build.
-AC_ARG_ENABLE(static-build,
-		[  --enable-static-build      link library statically with liblegacy.], :, :)
-AC_ARG_ENABLE(use-installed-lib,
-		[  --enable-use-installed-lib      use installed library instead of providing a path to a source directory.)], :, :)
-
 # Define min libksi version dependency.
-libksi_ver="3.5"
+libksi_ver="3.10"
+
+# Specify dependencies for DEB packaging.
+KSI_DEB_BUILD_DEPENDENCY="libksi-dev(>=$libksi_ver)"
+KSI_DEB_RUN_DEPENDENCY="libksi(>=$libksi_ver)"
 
 # Checks for libraries.
-if test $enable_static_build = "yes" ; then
-	# Perform the static build.
-	AC_CANONICAL_HOST
+# Perform the dynamic build.
+AC_CHECK_LIB([ksi],
+		[KSI_CTX_new],
+		[],
+		[AC_MSG_FAILURE([Could not find libksi (KSI C SDK). Install libksi or specify the library path manually.])])
+AC_CHECK_LIB([ksi],
+		[KSI_SignatureBuilder_open],
+		[],
+		[AC_MSG_FAILURE([Current libksi version (< 3.10.1839) does not support KSI_SignatureBuilder interface.])])
 
-	# As the linker options are not the same on linux and Mac check the OS
-	# and choose the right one for dynamic linking for other libraries.
-	if test "${host_os#*linux}" != "$host_os"; then
-		dy_link_flag="-Bdynamic"
-	else
-		dy_link_flag="-dynamic"
-	fi
-
-	AC_MSG_NOTICE([KSI library will be linked statically.])
-	AC_CHECK_LIB([ksi],
-			[KSI_CTX_new],
-			[LIBS="-Wl,-static -lksi -Wl,$dy_link_flag $LIBS"],
-			[AC_MSG_FAILURE([Could not find libksi (KSI C SDK). Install libksi or specify the library path manually.])])
-	AC_CHECK_LIB([ksi],
-			[KSI_SignatureBuilder_open],
-			[LIBS="-Wl,-static -lksi -Wl,$dy_link_flag $LIBS"],
-			[AC_MSG_FAILURE([Current libksi version (< 3.10.1839) does not support KSI_SignatureBuilder interface.])])
-
-	# Define RPM build flag. This flag is used in liblegacy.spec to modify
-	# building during RPM packaging in RPM build directory.
-	#RPM_BUILD_FLAGS="--enable-static-build"
-
-	# Check the libksi version only when the libksi in installed as during
-	# installation from specified directory the version is not known and the
-	# build will fail.
-	if test $enable_use_installed_libksi = "yes"  ; then
-		LIBKSI_BUILD_DEPENDENCY="BuildRequires: libksi-devel >= $libksi_ver"
-	fi
-else
-	# Perform the dynamic build.
-	AC_CHECK_LIB([ksi],
-			[KSI_CTX_new],
-			[],
-			[AC_MSG_FAILURE([Could not find libksi (KSI C SDK). Install libksi or specify the library path manually.])])
-	AC_CHECK_LIB([ksi],
-			[KSI_SignatureBuilder_open],
-			[],
-			[AC_MSG_FAILURE([Current libksi version (< 3.10.1839) does not support KSI_SignatureBuilder interface.])])
-
-	LIBKSI_BUILD_DEPENDENCY="BuildRequires: libksi-devel >= $libksi_ver"
-fi
+LIBKSI_BUILD_DEPENDENCY="BuildRequires: libksi-devel >= $libksi_ver"
 
 
 AC_SUBST(LIBKSI_BUILD_DEPENDENCY)
+AC_SUBST(KSI_DEB_BUILD_DEPENDENCY)
+AC_SUBST(KSI_DEB_RUN_DEPENDENCY)
 #AC_SUBST(RPM_BUILD_FLAGS)
 
 # Checks for libraries.
@@ -164,4 +129,5 @@ AC_CONFIG_FILES([src/lib/version.h])
 
 
 AC_CONFIG_FILES([GNUmakefile src/lib/GNUmakefile test/GNUmakefile doc/GNUmakefile src/example/GNUmakefile])
+AC_CONFIG_FILES([packaging/rpm/liblegacy.spec packaging/deb/control packaging/deb/rules])
 AC_OUTPUT
