@@ -27,6 +27,3 @@ Description: GuardTime Legacy API
 Version: @VERSION@
 Libs: -L${libdir} -llegacy -lksi -lrt
 Cflags: -I${includedir}
-
-# Dependencies are set in config.ac
-@LIBKSI_BUILD_DEPENDENCY@

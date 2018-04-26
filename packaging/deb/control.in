@@ -1,0 +1,22 @@
+Source: @PACKAGE@
+Section: devel
+Priority: optional
+Build-Depends: @KSI_DEB_BUILD_DEPENDENCY@
+Maintainer: Guardtime <support@guardtime.com>
+Standards-Version: 3.9.8
+
+Package: @PACKAGE@
+Architecture: any
+Section: devel
+Priority: optional
+Depends: @KSI_DEB_RUN_DEPENDENCY@
+Description: Legacy signature converter C API.
+
+Package: @PACKAGE@-dev
+Provides: @PACKAGE@-dev
+Conflicts: @PACKAGE@-dev
+Architecture: any
+Section: libdevel
+Priority: optional
+Depends: @PACKAGE@(=@VERSION@)
+Description: Legacy signature converter C API.

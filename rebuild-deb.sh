@@ -21,117 +21,43 @@
 
 set -e
 
-deb_dir=packaging/deb
 
-#Temporary directories for deb package build.
-tmp_dir_lib=$deb_dir/tmp_lib
-tmp_dir_devel=$deb_dir/tmp_devel
-tmp_dir_src=$deb_dir/tmp_src
+# Get version number.
+VER=$(tr -d [:space:] < VERSION)
+ARCH=$(dpkg --print-architecture)
+RELEASE_VERSION="$(lsb_release -is)$(lsb_release -rs | grep -Po "[0-9]{1,3}" | head -1)"
+PKG_VERSION=1
+DEB_DIR=packaging/deb
 
-#Destination dirs used for installion.
-lib_install_dir=usr/local/lib
-inc_install_dir=usr/local/include/legacy
-doc_install_dir=usr/share/doc/legacy
-src_install_dir=usr/local/src
-
-#Source directories for files.
-include_dir=src/lib
-lib_dir=src/lib/.libs
-
-
-#File list for liblegacy installion
-liblegacy_libs="$lib_dir/liblegacy.so \
-		$lib_dir/liblegacy.so.*"
-
-liblegacy_doc="changelog \
-		license.txt"
-
-
-#File list for liblegacy-devel installion
-liblegacy_devel_includes="\
-		$include_dir/parseasn1.h\
-		$include_dir/tsconvert.h\
-		$include_dir/version.h"
-
-liblegacy_devel_libs="\
-		$lib_dir/liblegacy.a \
-		$lib_dir/liblegacy.la \
-		liblegacy.pc"
-
-
-
-#Rebuild API
-./rebuild.sh
+autoreconf -if
+./configure $conf_args
+make clean
 make dist
 
 
+# Rebuild debian changelog.
+if command  -v dch > /dev/null; then
+  echo "Generating debian changelog..."
+  $DEB_DIR/rebuild_changelog.sh changelog $DEB_DIR/control liblegacy $DEB_DIR/changelog "1.0:unstable"
+else
+  >&2 echo "Error: Unable to generate Debian changelog file as dch is not installed!"
+  >&2 echo "Install devscripts 'apt-get install devscripts'"
+  exit 1
+fi
 
-#Create directory structure
-mkdir -p $tmp_dir_lib
-mkdir -p $tmp_dir_lib/liblegacy/$lib_install_dir/pkgconfig
-mkdir -p $tmp_dir_lib/liblegacy/$inc_install_dir
-mkdir -p $tmp_dir_lib/liblegacy/$doc_install_dir
+tar xvfz liblegacy-$VER.tar.gz
+mv liblegacy-$VER.tar.gz liblegacy-$VER.orig.tar.gz
+mkdir liblegacy-$VER/debian
+cp $DEB_DIR/control $DEB_DIR/changelog $DEB_DIR/rules $DEB_DIR/copyright liblegacy-$VER/debian
+chmod +x liblegacy-$VER/debian/rules
+cd liblegacy-$VER
+debuild -us -uc
+cd ..
 
-mkdir -p $tmp_dir_devel
-mkdir -p $tmp_dir_devel/liblegacy-devel/$lib_install_dir/pkgconfig
-mkdir -p $tmp_dir_devel/liblegacy-devel/$inc_install_dir
-mkdir -p $tmp_dir_devel/liblegacy-devel/$doc_install_dir
+suffix=${VER}-${PKG_VERSION}.${RELEASE_VERSION}_${ARCH}
+mv liblegacy_${VER}_${ARCH}.changes liblegacy_$suffix.changes
+mv liblegacy_${VER}_${ARCH}.deb liblegacy_$suffix.deb
+mv liblegacy-dev_${VER}_${ARCH}.deb liblegacy-dev_$suffix.deb
 
-mkdir -p $tmp_dir_src
+rm -rf liblegacy-$VER
 
-mkdir -p $tmp_dir_lib/liblegacy/DEBIAN
-mkdir -p $tmp_dir_devel/liblegacy-devel/DEBIAN
-mkdir -p $tmp_dir_src/liblegacy/debian
-
-
-#Get version number
-VER=$(tr -d [:space:] < VERSION)
-ARCH=$(dpkg --print-architecture)
-
-
-#Copy files
-cp  $deb_dir/liblegacy/DEBIAN/control $tmp_dir_lib/liblegacy/DEBIAN/control
-cp  $deb_dir/liblegacy/DEBIAN/control-devel $tmp_dir_devel/liblegacy-devel/DEBIAN/control
-cp  $deb_dir/liblegacy/DEBIAN/control-source $tmp_dir_src/liblegacy/debian/control
-cp  $deb_dir/liblegacy/DEBIAN/changelog $tmp_dir_src/liblegacy/debian/
-
-
-sed -i s/@VER@/$VER/g "$tmp_dir_lib/liblegacy/DEBIAN/control"
-sed -i s/@ARCH@/$ARCH/g "$tmp_dir_lib/liblegacy/DEBIAN/control"
-
-sed -i s/@VER@/$VER/g $tmp_dir_devel/liblegacy-devel/DEBIAN/control
-sed -i s/@ARCH@/$ARCH/g $tmp_dir_devel/liblegacy-devel/DEBIAN/control
-
-sed -i s/@ARCH@/$ARCH/g "$tmp_dir_src/liblegacy/debian/control"
-sed -i s/@VER@/$VER/g "$tmp_dir_src/liblegacy/debian/control"
-
-#copy data
-
-cp -f $liblegacy_libs $tmp_dir_lib/liblegacy/$lib_install_dir/
-cp -f $liblegacy_doc $tmp_dir_lib/liblegacy/$doc_install_dir/
-
-cp -f $liblegacy_devel_includes $tmp_dir_devel/liblegacy-devel/$inc_install_dir/
-cp -f $liblegacy_devel_libs $tmp_dir_devel/liblegacy-devel/$lib_install_dir/
-
-#cp -f liblegacy-${VER}.tar.gz $tmp_dir_src/liblegacy_${VER}.orig.tar.gz
-tar -xvzf liblegacy-${VER}.tar.gz -C $tmp_dir_src/
-cp -r $tmp_dir_src/liblegacy/debian $tmp_dir_src/liblegacy-${VER}
-
-
-#Build packages
-dpkg-deb --build $tmp_dir_lib/liblegacy
-mv $tmp_dir_lib/liblegacy.deb liblegacy_${VER}_${ARCH}.deb
-
-dpkg-deb --build $tmp_dir_devel/liblegacy-devel
-mv $tmp_dir_devel/liblegacy-devel.deb liblegacy-devel_${VER}_${ARCH}.deb
-
-dpkg-source -b -sn $tmp_dir_src/liblegacy-${VER} ""
-
-
-#Cleanup
-rm -rf $deb_dir/liblegacy/usr
-
-rm -rf $tmp_dir_lib
-rm -rf $tmp_dir_devel
-rm -rf $tmp_dir_src
-rm liblegacy-${VER}.tar.gz
