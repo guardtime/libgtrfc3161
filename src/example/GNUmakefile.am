@@ -18,10 +18,10 @@
 #
 
 AM_CFLAGS = -g -Wall -I$(top_builddir)/src/lib
-AM_LDFLAGS = -L$(top_builddir)/src/lib -no-install -llegacy -lksi
-check_PROGRAMS = legacy_convert
+AM_LDFLAGS = -L$(top_builddir)/src/lib -no-install -lgtrfc3161 -lksi
+check_PROGRAMS = gtrfc3161_convert
 
-legacy_convert_SOURCES = \
-	legacy_convert.c
+gtrfc3161_convert_SOURCES = \
+	gtrfc3161_convert.c
 
 

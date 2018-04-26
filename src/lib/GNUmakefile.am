@@ -20,9 +20,9 @@
 clean-local:
 	rm -fr *.gcno
 
-lib_LTLIBRARIES = liblegacy.la
+lib_LTLIBRARIES = libgtrfc3161.la
 
-liblegacy_la_SOURCES = \
+libgtrfc3161_la_SOURCES = \
 	parseasn1.c\
 	parseasn1.h\
 	tsconvert.c\
@@ -30,19 +30,19 @@ liblegacy_la_SOURCES = \
 	config.h\
 	version.h
 
-otherincludedir = $(includedir)/legacy
+otherincludedir = $(includedir)/gtrfc3161
 otherinclude_HEADERS = \
 	parseasn1.h\
 	tsconvert.h\
 	version.h
 
-liblegacy_la_LDFLAGS=-version-info @LTVER@
+libgtrfc3161_la_LDFLAGS=-version-info @LTVER@
 
 if FULL_TEST_COVERAGE
-lib_LTLIBRARIES += liblegacymlc.la
-liblegacymlc_la_CFLAGS=-D USE_CUSTOM_MALLOC=1 -I ../../test
-liblegacymlc_la_LDFLAGS=-version-info @LTVER@
-liblegacymlc_la_SOURCES = \
+lib_LTLIBRARIES += libgtrfc3161mlc.la
+libgtrfc3161mlc_la_CFLAGS=-D USE_CUSTOM_MALLOC=1 -I ../../test
+libgtrfc3161mlc_la_LDFLAGS=-version-info @LTVER@
+libgtrfc3161mlc_la_SOURCES = \
 	parseasn1.c\
 	parseasn1.h\
 	tsconvert.c\

@@ -19,7 +19,7 @@
 # reserves and retains all trademark rights.
 #
 
-PRF=liblegacy-$(tr -d [:space:] < VERSION)
+PRF=libgtrfc3161-$(tr -d [:space:] < VERSION)
 
 if [ $# -eq 0 ]; then
   conf_args="--enable-full-test-coverage"

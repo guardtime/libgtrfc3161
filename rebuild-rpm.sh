@@ -27,10 +27,10 @@ autoreconf -if && \
 make clean && \
 make dist && \
 mkdir -p $BUILD_DIR/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp} && \
-cp packaging/rpm/liblegacy.spec $BUILD_DIR/SPECS/ && \
-cp liblegacy-*.tar.gz $BUILD_DIR/SOURCES/ && \
-rpmbuild -ba $BUILD_DIR/SPECS/liblegacy.spec && \
-cp $BUILD_DIR/RPMS/*/liblegacy-*$version*.rpm . && \
-cp $BUILD_DIR/SRPMS/liblegacy-*$version*.rpm . && \
+cp packaging/rpm/libgtrfc3161.spec $BUILD_DIR/SPECS/ && \
+cp libgtrfc3161-*.tar.gz $BUILD_DIR/SOURCES/ && \
+rpmbuild -ba $BUILD_DIR/SPECS/libgtrfc3161.spec && \
+cp $BUILD_DIR/RPMS/*/libgtrfc3161-*$version*.rpm . && \
+cp $BUILD_DIR/SRPMS/libgtrfc3161-*$version*.rpm . && \
 chmod -v 644 *.rpm
 

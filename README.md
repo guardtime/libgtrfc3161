@@ -1,4 +1,4 @@
-# liblegacy #
+# libgtrfc3161 #
 Guardtime Keyless Signature Infrastructure (KSI) is an industrial scale blockchain platform that cryptographically
 ensures data integrity and proves time of existence. Its keyless signatures, based on hash chains, link data to global
 calendar blockchain. The checkpoints of the blockchain, published in newspapers and electronic media, enable long term
@@ -6,7 +6,7 @@ integrity of any digital asset without the need to trust any system. There are m
 example is signing of any type of logs - system logs, financial transactions, call records, etc. For more,
 see [https://guardtime.com](https://guardtime.com).
 
-`liblegacy` is a software development kit for developers who want to convert Guardtime's legacy signatures to
+`libgtrfc3161` is a software development kit for developers who want to convert Guardtime's legacy signatures to
 Guardtime's KSI signatures in their C/C++ based applications .
 
 ## Installation ##
@@ -24,21 +24,21 @@ sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.el6.repo
 # In case of RHEL/CentOS 7
 sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.el7.repo
 
-yum install liblegacy
+yum install libgtrfc3161
 ```
 
 ### From Source Code
 
 If the latest version is needed or the package is not available for the platform you are using, check out the source code from Github and build it with the `rebuild.sh` script. To build the legacy signature converter SDK, `libksi` and `libksi-devel` (KSI C SDK) packages are needed. `libksi` is available in Guardtime repository or as source code in GitHub: [https://github.com/GuardTime/libksi](https://github.com/GuardTime/libksi).
 
-To use liblegacy in your C/C++ project, link it against the `libksi` and `liblegacy` libraries.
+To use libgtrfc3161 in your C/C++ project, link it against the `libksi` and `libgtrfc3161` libraries.
 
 ## Usage ##
 
 A simple example how to convert a legacy signature:
 ```C
   #include <ksi/ksi.h>
-  #include <legacy/tsconvert.h>
+  #include <gtrfc3161/tsconvert.h>
 
   /* Read the legacy signature from file. */
   FILE *in_file = NULL;
@@ -73,7 +73,7 @@ A simple example how to convert a legacy signature:
   KSI_CTX_free(ctx);
 ```
 
-The API full reference is available here [http://guardtime.github.io/liblegacy/](http://guardtime.github.io/liblegacy/).
+The API full reference is available here [http://guardtime.github.io/libgtrfc3161/](http://guardtime.github.io/libgtrfc3161/).
 
 ## Contributing ##
 
