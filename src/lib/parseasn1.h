@@ -1,6 +1,13 @@
+#ifndef PARSEASN1_H
+#define PARSEASN1_H
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef size_t ASN1POSITION;
 
@@ -38,3 +45,9 @@ int asn1_parse_object(asn1_dom *dom, const unsigned char *data, size_t length, u
 int asn1_parse_header(const unsigned char *data, size_t length, asn1_object *asn1);
 
 int asn1_decode_integer(asn1_dom *dom, ASN1POSITION index, uint64_t *out);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // PARSEASN1_H
