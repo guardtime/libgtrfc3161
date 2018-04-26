@@ -50,7 +50,7 @@ int parse_values_from_der(const unsigned char* buffer, size_t size, rfc3161_fiel
 	asn1_dom *time_signature=NULL;
 	ASN1POSITION pos, tst_info_pos, signed_attr_pos, time_signature_pos;
 
-	if (buffer == NULL || fields == NULL) {
+	if (buffer == NULL || fields == NULL || size < 2) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
@@ -182,10 +182,7 @@ static inline unsigned get_hash_size(unsigned char id) {
 
 bool check_link_item(const unsigned char* chain, size_t pos, size_t length)
 {
-	if (chain == NULL)
-		return false;
-
-	if (length - pos < 3)
+	if (chain == NULL || length - pos < 3)
 		return false;
 
 	// Check linking info (LEFT_LINK=1, RIGHT_LINK=0, > 1 is invalid)
@@ -221,13 +218,9 @@ bool is_metahash(const unsigned char *chain, size_t size)
 	//Hash code 3 with length 28 is a hardcoded for formerly used SHA2-224
 	const size_t hash_len = 28;
 
-	if (chain == NULL)
+	if (chain == NULL || size == 0)
 		return false;
 
-	if (size <= 0) {
-		/* No hash step. */
-		return false;
-	}
 	if (chain[0] != 3) {
 		/* Sibling not SHA-224. */
 		return false;
@@ -257,7 +250,7 @@ bool is_last_chain_item(const unsigned char* chain, size_t position, size_t chai
 	static const uint32_t TOP_LEVEL = 60;
 	uint32_t level_byte;
 
-	if (chain == NULL)
+	if (chain == NULL || chain_length == 0)
 		return false;
 
 	// peek at posistion + 2 element level byte, if this is a known global depth value
@@ -441,7 +434,7 @@ int extract_aggr_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_si
 	int algo_id=-1;
 	unsigned char link_algo_id=-1;
 
-	if (ctx == NULL || out == NULL || chain == NULL || chain_pos == NULL || input_level_byte == NULL) {
+	if (ctx == NULL || out == NULL || chain == NULL || chain_size == 0 || chain_pos == NULL || input_level_byte == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
@@ -557,7 +550,7 @@ int convert_aggregation_chains(KSI_CTX *ctx, const unsigned char *chain, size_t 
 	KSI_AggregationHashChain *ksi_chain=NULL;
 	KSI_AggregationHashChainList *aggr_chains = NULL;
 
-	if (ctx == NULL || chain == NULL || out == NULL) {
+	if (ctx == NULL || chain == NULL || out == NULL || chain_size == 0) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
@@ -599,7 +592,7 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 	KSI_DataHash *hash = NULL;
 	KSI_CalendarHashChain *calendar_chain = NULL;
 
-	if (ctx == NULL || chain == NULL || out == NULL) {
+	if (ctx == NULL || chain == NULL || out == NULL || chain_size == 0) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}
@@ -954,7 +947,7 @@ int convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, size
 	KSI_SignatureBuilder *builder = NULL;
 	KSI_Signature *out = NULL;
 
-	if (ctx == NULL || rfc3161_signature == NULL || ksi_signature == NULL) {
+	if (ctx == NULL || rfc3161_signature == NULL || rfc3161_size == 0 || ksi_signature == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto done;
 	}

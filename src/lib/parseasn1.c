@@ -286,7 +286,7 @@ int asn1_parse_object(asn1_dom* dom, const unsigned char* data, size_t length, u
 	asn1_object asn1={0};
 	int pos=0;
 
-	if (dom == NULL || data == NULL) {
+	if (dom == NULL || data == NULL || length < 2) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto cleanup;
 	}
@@ -331,7 +331,7 @@ int asn1_parse_header(const unsigned char* data, size_t length, asn1_object* asn
 	long tag = 0, l=0;
 	unsigned i;
 
-	if (data == NULL || asn1 == NULL) {
+	if (data == NULL || asn1 == NULL || length < 2) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto cleanup;
 	}
