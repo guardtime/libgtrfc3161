@@ -13,7 +13,7 @@ Guardtime's KSI signatures in their C/C++ based applications .
 
 ### Latest Release from Guardtime Repository
 
-In order to install the `liblegacy` CentOS/RHEL packages directly from the Guardtime public repository, download and save the repository configuration to the `/etc/yum.repos.d/` folder:
+In order to install the `libgtrfc3161` CentOS/RHEL packages directly from the Guardtime public repository, download and save the repository configuration to the `/etc/yum.repos.d/` folder:
 
 ```
 cd /etc/yum.repos.d

@@ -23,7 +23,7 @@
 %endif
 
 Summary: Guardtime Legacy API for C
-Name: libgtrfc3161
+Name: @PACKAGE@
 Version: @VERSION@
 Release: 1%{?dist}
 License: ASL 2.0
@@ -69,8 +69,8 @@ make install DESTDIR=%{buildroot}
 
 %files
 %defattr(644,root,root,755)
-%{_libdir}/libgtrfc3161.so
-%{_libdir}/libgtrfc3161.so.*
+%{_libdir}/@PACKAGE@.so
+%{_libdir}/@PACKAGE@.so.*
 %{_docdir}/%{name}/changelog
 %{_docdir}/%{name}/license
 
@@ -79,6 +79,6 @@ make install DESTDIR=%{buildroot}
 %{_includedir}/gtrfc3161/parseasn1.h
 %{_includedir}/gtrfc3161/tsconvert.h
 %{_includedir}/gtrfc3161/version.h
-%{_libdir}/libgtrfc3161.a
-%{_libdir}/libgtrfc3161.la
-%{_libdir}/pkgconfig/libgtrfc3161.pc
+%{_libdir}/@PACKAGE@.a
+%{_libdir}/@PACKAGE@.la
+%{_libdir}/pkgconfig/@PACKAGE@.pc
