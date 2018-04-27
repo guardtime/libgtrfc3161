@@ -17,11 +17,11 @@
  * reserves and retains all trademark rights.
  */
 
-#ifndef _LEGACY_VERSION_H_
-#define _LEGACY_VERSION_H_
+#ifndef _GTRFC3161_VERSION_H_
+#define _GTRFC3161_VERSION_H_
 
-#define LEGACY_SDK_VER_MAJOR @VER_MAJOR@
-#define LEGACY_SDK_VER_MINOR @VER_MINOR@
-#define LEGACY_SDK_VER_BUILD @VER_BUILD@
+#define GTRFC3161_SDK_VER_MAJOR @VER_MAJOR@
+#define GTRFC3161_SDK_VER_MINOR @VER_MINOR@
+#define GTRFC3161_SDK_VER_BUILD @VER_BUILD@
 
-#endif /* _LEGACY_VERSION_H_ */
+#endif /* _GTRFC3161_VERSION_H_ */

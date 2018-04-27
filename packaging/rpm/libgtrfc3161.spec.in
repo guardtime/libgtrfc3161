@@ -23,7 +23,7 @@
 %endif
 
 Summary: Guardtime Legacy API for C
-Name: liblegacy
+Name: @PACKAGE@
 Version: @VERSION@
 Release: 1%{?dist}
 License: ASL 2.0
@@ -69,16 +69,16 @@ make install DESTDIR=%{buildroot}
 
 %files
 %defattr(644,root,root,755)
-%{_libdir}/liblegacy.so
-%{_libdir}/liblegacy.so.*
+%{_libdir}/@PACKAGE@.so
+%{_libdir}/@PACKAGE@.so.*
 %{_docdir}/%{name}/changelog
 %{_docdir}/%{name}/license
 
 %files devel
 %defattr(644,root,root,755)
-%{_includedir}/legacy/parseasn1.h
-%{_includedir}/legacy/tsconvert.h
-%{_includedir}/legacy/version.h
-%{_libdir}/liblegacy.a
-%{_libdir}/liblegacy.la
-%{_libdir}/pkgconfig/liblegacy.pc
+%{_includedir}/gtrfc3161/parseasn1.h
+%{_includedir}/gtrfc3161/tsconvert.h
+%{_includedir}/gtrfc3161/version.h
+%{_libdir}/@PACKAGE@.a
+%{_libdir}/@PACKAGE@.la
+%{_libdir}/pkgconfig/@PACKAGE@.pc

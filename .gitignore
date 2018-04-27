@@ -24,7 +24,7 @@ GNUMakefile
 config.h
 
 .deps
-liblegacy.pc
+libgtrfc3161.pc
 src/lib/stamp-h1
 
 libtool
@@ -65,7 +65,7 @@ libtool
 
 # Binaries and log files
 src/example/.libs/
-src/example/legacy_convert
+src/example/gtrfc3161_convert
 src/lib/.libs/
 *.log
 test/.dirstamp
@@ -93,4 +93,4 @@ version.h
 
 *.bak
 *.rpm
-liblegacy.spec
+libgtrfc3161.spec

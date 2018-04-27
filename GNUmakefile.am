@@ -26,10 +26,10 @@ docdir = ${datadir}/doc/${PACKAGE}
 dist_doc_DATA = changelog license
 
 pkgconfigdir = ${libdir}/pkgconfig
-pkgconfig_DATA = liblegacy.pc
+pkgconfig_DATA = libgtrfc3161.pc
 
 EXTRA_DIST = VERSION changelog build-linux  license \
-		doc/doxy* test/* packaging/rpm/liblegacy.spec
+		doc/doxy* test/* packaging/rpm/libgtrfc3161.spec
 
 ZIPDOC_DIR = ${PACKAGE}-${VERSION}-htmldoc
 

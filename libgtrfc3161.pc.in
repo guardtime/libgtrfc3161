@@ -22,8 +22,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: liblegacy
+Name: @PACKAGE@
 Description: GuardTime Legacy API
 Version: @VERSION@
-Libs: -L${libdir} -llegacy -lksi -lrt
+Libs: -L${libdir} -lgtrfc3161 -lksi -lrt
 Cflags: -I${includedir}

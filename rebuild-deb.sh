@@ -38,26 +38,26 @@ make dist
 # Rebuild debian changelog.
 if command  -v dch > /dev/null; then
   echo "Generating debian changelog..."
-  $DEB_DIR/rebuild_changelog.sh changelog $DEB_DIR/control liblegacy $DEB_DIR/changelog "1.0:unstable"
+  $DEB_DIR/rebuild_changelog.sh changelog $DEB_DIR/control libgtrfc3161 $DEB_DIR/changelog "1.0:unstable"
 else
   >&2 echo "Error: Unable to generate Debian changelog file as dch is not installed!"
   >&2 echo "Install devscripts 'apt-get install devscripts'"
   exit 1
 fi
 
-tar xvfz liblegacy-$VER.tar.gz
-mv liblegacy-$VER.tar.gz liblegacy-$VER.orig.tar.gz
-mkdir liblegacy-$VER/debian
-cp $DEB_DIR/control $DEB_DIR/changelog $DEB_DIR/rules $DEB_DIR/copyright liblegacy-$VER/debian
-chmod +x liblegacy-$VER/debian/rules
-cd liblegacy-$VER
+tar xvfz libgtrfc3161-$VER.tar.gz
+mv libgtrfc3161-$VER.tar.gz libgtrfc3161-$VER.orig.tar.gz
+mkdir libgtrfc3161-$VER/debian
+cp $DEB_DIR/control $DEB_DIR/changelog $DEB_DIR/rules $DEB_DIR/copyright libgtrfc3161-$VER/debian
+chmod +x libgtrfc3161-$VER/debian/rules
+cd libgtrfc3161-$VER
 debuild -us -uc
 cd ..
 
 suffix=${VER}-${PKG_VERSION}.${RELEASE_VERSION}_${ARCH}
-mv liblegacy_${VER}_${ARCH}.changes liblegacy_$suffix.changes
-mv liblegacy_${VER}_${ARCH}.deb liblegacy_$suffix.deb
-mv liblegacy-dev_${VER}_${ARCH}.deb liblegacy-dev_$suffix.deb
+mv libgtrfc3161_${VER}_${ARCH}.changes libgtrfc3161_$suffix.changes
+mv libgtrfc3161_${VER}_${ARCH}.deb libgtrfc3161_$suffix.deb
+mv libgtrfc3161-dev_${VER}_${ARCH}.deb libgtrfc3161-dev_$suffix.deb
 
-rm -rf liblegacy-$VER
+rm -rf libgtrfc3161-$VER
 
