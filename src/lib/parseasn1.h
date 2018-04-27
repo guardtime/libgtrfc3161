@@ -50,4 +50,4 @@ int asn1_decode_integer(asn1_dom *dom, ASN1POSITION index, uint64_t *out);
 }
 #endif
 
-#endif // PARSEASN1_H
+#endif /* PARSEASN1_H */

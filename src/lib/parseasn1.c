@@ -30,8 +30,9 @@ const char *find_tag_name(unsigned char tag) {
 	size_t i = 0;
 
 	while (tag_names[i].name != NULL) {
-		if (tag_names[i].tag == tag)
+		if (tag_names[i].tag == tag) {
 			return tag_names[i].name;
+		}
 		i++;
 	}
 
@@ -83,13 +84,14 @@ void asn1_dom_free(asn1_dom *dom) {
 static void *asn1_dom_realloc(void *ptr, size_t old_size, size_t new_size) {
 	void *tmp = NULL;
 
-	if (ptr == NULL || old_size == 0 || new_size == 0)
+	if (ptr == NULL || old_size == 0 || new_size == 0) {
 		return NULL;
+	}
 
 	tmp = KSI_malloc(new_size);
-	if (tmp == NULL)
+	if (tmp == NULL) {
 		return NULL;
-	else {
+	} else {
 		size_t n = old_size < new_size ? old_size : new_size;
 		memcpy(tmp, ptr, n);
 		KSI_free(ptr);
@@ -127,34 +129,38 @@ void asn1_dom_dump(asn1_dom *dom) {
 	int lastlevel = 0;
 	int i, j;
 
-	if (dom == NULL || dom->objects == NULL)
+	if (dom == NULL || dom->objects == NULL) {
 		return;
+	}
 
 	for (i = 0; i < dom->used; i++) {
 		const asn1_object *asn1 = &dom->objects[i];
 
 		while (asn1->level < lastlevel) {
-			for (j = 0; j < lastlevel; j++)
+			for (j = 0; j < lastlevel; j++) {
 				printf("  ");
+			}
 			printf("}\n");
 			lastlevel--;
 		}
 
-		for (j = 0; j < asn1->level; j++)
+		for (j = 0; j < asn1->level; j++) {
 			printf("  ");
+		}
 
 		const char *name = find_tag_name(asn1->tag);
 
-		if (name)
+		if (name) {
 			printf("%s", name);
-		else
+		} else {
 			printf("[%ld]", asn1->tag);
+		}
 
-		if (asn1->structured)
+		if (asn1->structured) {
 			printf(" { \n");
-		else {
+		} else {
 			printf("\n");
-			//printf( detailed obeject );
+			/* printf( detailed obeject ); */
 		}
 
 		lastlevel = asn1->level;
@@ -165,16 +171,20 @@ int asn1_dom_find_child(const asn1_dom *dom, ASN1POSITION parent_index, unsigned
 	unsigned i;
 	asn1_object *parent = NULL;
 
-	if (dom == NULL || dom->objects == NULL)
+	if (dom == NULL || dom->objects == NULL) {
 		return -1;
-	if (parent_index >= dom->used - 1)
+	}
+	if (parent_index >= dom->used - 1) {
 		return -1;
+	}
 
 	parent=&dom->objects[parent_index];
 
-	for (i = parent_index + 1; i < dom->used && dom->objects[i].level > parent->level; i++)
-		if (dom->objects[i].tag == tag)
+	for (i = parent_index + 1; i < dom->used && dom->objects[i].level > parent->level; i++) {
+		if (dom->objects[i].tag == tag) {
 			return i;
+		}
+	}
 
 	return -1;
 }
@@ -184,23 +194,28 @@ int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent_index, ASN1POSIT
 	unsigned i;
 	asn1_object *parent = NULL;
 
-	if (dom == NULL || dom->objects == NULL)
+	if (dom == NULL || dom->objects == NULL) {
 		return -1;
-	if (parent_index >= dom->used - 1)
+	}
+	if (parent_index >= dom->used - 1) {
 		return -1;
+	}
 
 	parent=&dom->objects[parent_index];
 
 	for (i = parent_index + 1; i < dom->used; i++) {
 
-		if (dom->objects[i].level == parent->level)
+		if (dom->objects[i].level == parent->level) {
 			return -1;
+		}
 
-		if (dom->objects[i].level == parent->level + 1)
+		if (dom->objects[i].level == parent->level + 1) {
 			child_found++;
+		}
 
-		if (child_found - 1 == index)
+		if (child_found - 1 == index) {
 			return i;
+		}
 	}
 
 	return -1;
@@ -231,8 +246,9 @@ int asn1_dom_get_subobject(const asn1_dom *dom, const char *path, ASN1POSITION i
 			goto cleanup;
 		}
 
-		if (*next == '.')
+		if (*next == '.') {
 			p = next + 1;
+		}
 	} while (*next);
 
 	*out = index;
@@ -244,18 +260,22 @@ cleanup:
 }
 
 const unsigned char *asn1_dom_get_object_ptr(const asn1_dom *dom, ASN1POSITION index) {
-	if (dom == NULL || dom->objects == NULL || dom->data == NULL)
+	if (dom == NULL || dom->objects == NULL || dom->data == NULL) {
 		return NULL;
-	if (index >= dom->used)
+	}
+	if (index >= dom->used) {
 		return NULL;
+	}
 	return dom->data + dom->objects[index].offset;
 }
 
 int asn1_dom_get_object_size(const asn1_dom *dom, ASN1POSITION index) {
-	if (dom == NULL || dom->objects == NULL)
+	if (dom == NULL || dom->objects == NULL) {
 		return -1;
-	if (index >= dom->used)
+	}
+	if (index >= dom->used) {
 		return -1;
+	}
 	return dom->objects[index].body_length + dom->objects[index].header_length;
 }
 
@@ -268,10 +288,12 @@ const unsigned char *asn1_dom_get_body_ptr(const asn1_dom *dom, ASN1POSITION ind
 }
 
 int asn1_dom_get_body_size(const asn1_dom *dom, ASN1POSITION index) {
-	if (dom == NULL || dom->objects == NULL)
+	if (dom == NULL || dom->objects == NULL) {
 		return -1;
-	if (index >= dom->used)
+	}
+	if (index >= dom->used) {
 		return -1;
+	}
 	return dom->objects[index].body_length;
 }
 
@@ -334,16 +356,17 @@ int asn1_parse_header(const unsigned char *data, size_t length, asn1_object *asn
 
 	tag = data[0] & 0x1f;
 
-	//tag is longer than 5 bits
+	/* Tag is longer than 5 bits. */
 	if (tag == 0x1f) {
 		tag = 0;
 
-		//while the first bit is set there are more tag bytes following
+		/* While the first bit is set there are more tag bytes following. */
 		do {
-			if (pos == length)
+			if (pos == length) {
 				goto cleanup;
+			}
 
-			//seven leftmost bits are used
+			/* Seven leftmost bits are used. */
 			tag = tag * 128 + data[pos] - 0x80;
 			pos++;
 		} while (data[pos] >= 0x80);
@@ -366,13 +389,14 @@ int asn1_parse_header(const unsigned char *data, size_t length, asn1_object *asn
 
 	asn1->header_length = pos;
 
-	//The element is terminated by double zero
+	/* The element is terminated by double zero. */
 	if (l == 0x80) {
 		l = 0;
 		while (data[pos + l] != 0 || data[pos + l + 1] != 0) {
 			l += 1;
-			if (pos + l + 1 > length - 1)
+			if (pos + l + 1 > length - 1) {
 				goto cleanup;
+			}
 		}
 
 		asn1->body_length = l + 2;
@@ -380,8 +404,9 @@ int asn1_parse_header(const unsigned char *data, size_t length, asn1_object *asn
 		asn1->body_length = l;
 	}
 
-	if (asn1->header_length + asn1->body_length > length)
+	if (asn1->header_length + asn1->body_length > length) {
 		goto cleanup;
+	}
 
 	res = LEGACY_OK;
 
@@ -400,8 +425,7 @@ int decode_integer(const unsigned char *data, size_t length, uint64_t *out) {
 		goto cleanup;
 	}
 
-	for (i = 0; i < length; i++)
-	{
+	for (i = 0; i < length; i++) {
 		result = (result << 8);
 		result += data[i];
 	}
