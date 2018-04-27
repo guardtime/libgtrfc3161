@@ -11,12 +11,14 @@
 bool save_file(const char *file_name, const unsigned char *data, size_t length) {
 	int fd = -1;
 
-	if (file_name == NULL || data == NULL)
+	if (file_name == NULL || data == NULL) {
 		return false;
+	}
 
 	fd = open(file_name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-	if (fd < 0)
+	if (fd < 0) {
 		return false;
+	}
 
 	if (write(fd, data, length) != (int)length) {
 		close(fd);
@@ -36,16 +38,18 @@ bool save_file(const char *file_name, const unsigned char *data, size_t length) 
 }
 
 unsigned char *load_file(const char *file_name, size_t *length) {
-	int fd =- 1;
+	int fd = -1;
 	bool success = false;
 	unsigned char *data;
 
-	if (file_name == NULL || length == NULL)
+	if (file_name == NULL || length == NULL) {
 		return NULL;
+	}
 
 	fd = open(file_name, O_RDONLY);
-	if (fd == -1)
+	if (fd == -1) {
 		return NULL;
+	}
 
 	unsigned size = lseek(fd, 0L, SEEK_END);
 	lseek(fd, 0L, SEEK_SET);
@@ -55,15 +59,17 @@ unsigned char *load_file(const char *file_name, size_t *length) {
 		return NULL;
 	}
 
-	if (read(fd, data, size) != (int)size)
+	if (read(fd, data, size) != (int)size) {
 		goto cleanup;
+	}
 
 	*length = size;
 	success = true;
 
 cleanup:
-	if (fd != -1)
+	if (fd != -1) {
 		close(fd);
+	}
 
 	if (!success) {
 		KSI_free(data);

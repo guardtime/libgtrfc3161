@@ -26,4 +26,4 @@ int convert_signature(KSI_CTX *ctx, const unsigned char *rfc3161_signature, size
 }
 #endif
 
-#endif //TSCONVERT_H
+#endif /* TSCONVERT_H */

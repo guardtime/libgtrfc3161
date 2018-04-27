@@ -16,8 +16,9 @@ typedef struct mem_buf_st {
 } mem_buf;
 
 void set_mem_buf(mem_buf *b, const unsigned char *ptr, size_t size) {
-	if (b == NULL || ptr == NULL)
+	if (b == NULL || ptr == NULL) {
 		return;
+	}
 
 	b->ptr = ptr;
 	b->size = size;
@@ -67,19 +68,19 @@ int parse_values_from_der(const unsigned char *buffer, size_t size, rfc3161_fiel
 	res = asn1_parse_object(dom, buffer, size, 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//find encapsulated TSTInfo object
+	/* Find encapsulated TSTInfo object. */
 	res = asn1_dom_get_subobject(dom, "1.0.2.1.0", 0, &tst_info_pos);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//parse TSTInfo here
+	/* Parse TSTInfo here. */
 	res = asn1_parse_object(tst_info, asn1_dom_get_body_ptr(dom, tst_info_pos), asn1_dom_get_body_size(dom, tst_info_pos), 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//find input hash inside TSTInfo
+	/* Find input hash inside TSTInfo. */
 	res = asn1_dom_get_subobject(tst_info, "2.1", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//an algorithm identifier has to be prepended to input hash in KSI format
+	/* An algorithm identifier has to be prepended to input hash in KSI format. */
 	set_mem_buf(&fields->input_hash, asn1_dom_get_body_ptr(tst_info, pos), asn1_dom_get_body_size(tst_info, pos));
 
 	set_mem_buf(&fields->tst_info_prefix, tst_info->data, tst_info->objects[pos].offset + 2);
@@ -89,74 +90,74 @@ int parse_values_from_der(const unsigned char *buffer, size_t size, rfc3161_fiel
 				asn1_dom_get_body_size(dom, tst_info_pos) - tst_info->objects[pos].offset - asn1_dom_get_object_size(tst_info, pos));
 
 
-	//find signed attributes object
+	/* Find signed attributes object. */
 	res = asn1_dom_get_subobject(dom, "1.0.4.0.3", 0, &signed_attr_pos);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//parse signed attributes here
+	/* Parse signed attributes here. */
 	res = asn1_parse_object(signed_attr, asn1_dom_get_object_ptr(dom, signed_attr_pos), asn1_dom_get_object_size(dom, signed_attr_pos), 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//find signed data inside signed attributes
+	/* Find signed data inside signed attributes. */
 	res = asn1_dom_get_subobject(signed_attr, "1.1.0", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//NB!
-	//Here the first byte is 0xa0 (class 2/structured/tag = 0)
-	//encodeToDER produces 0x31 (class 0/structured/tag = 16 (sequence))
-	//the 1st byte of fields->signed_attr_prefix has to be changed to 0x31
+	/* NB!
+	 * Here the first byte is 0xa0 (class 2/structured/tag = 0).
+	 * encodeToDER produces 0x31 (class 0/structured/tag = 16 (sequence)).
+	 * The 1st byte of fields->signed_attr_prefix has to be changed to 0x31. */
 
 	set_mem_buf(&fields->signed_attr_prefix, signed_attr->data, signed_attr->objects[pos].offset + signed_attr->objects[pos].header_length);
 	((unsigned char*)fields->signed_attr_prefix.ptr)[0] = 0x31;
 
 	set_mem_buf(&fields->tst_info_hash, asn1_dom_get_body_ptr(signed_attr, pos), asn1_dom_get_body_size(signed_attr, pos));
 
-	//this should always result in 0 length data
+	/* This should always result in 0 length data. */
 	set_mem_buf(&fields->signed_attr_suffix,
 				signed_attr->data + signed_attr->objects[pos].offset + asn1_dom_get_object_size(signed_attr, pos),
 				asn1_dom_get_object_size(dom, signed_attr_pos) - signed_attr->objects[pos].offset - asn1_dom_get_object_size(signed_attr, pos));
 
-	//find time_signature object
+	/* Find time_signature object. */
 	res = asn1_dom_get_subobject(dom, "1.0.4.0.5", 0, &time_signature_pos);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//parse signed attributes here
+	/* Parse signed attributes here. */
 	res = asn1_parse_object(time_signature, asn1_dom_get_body_ptr(dom, time_signature_pos), asn1_dom_get_body_size(dom, time_signature_pos), 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
-	//location chain inside GT timesignature
+	/* Location chain inside GT timesignature. */
 	res = asn1_dom_get_subobject(time_signature, "0", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
 	set_mem_buf(&fields->location_chain, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
-	//history chain inside GT timesignature
+	/* History chain inside GT timesignature. */
 	res = asn1_dom_get_subobject(time_signature, "1", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
 	set_mem_buf(&fields->history_chain, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
-	//publication time inside GT timesignature
+	/* Publication time inside GT timesignature. */
 	res = asn1_dom_get_subobject(time_signature, "2.0", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
 	res = asn1_decode_integer(time_signature, pos, &fields->publication_time);
 	if (res != LEGACY_OK) goto cleanup;
-	//set_mem_buf(&fields->published_data, asn1_dom_get_object_ptr(time_signature, pos), asn1_dom_get_object_size(time_signature, pos));
+	/* set_mem_buf(&fields->published_data, asn1_dom_get_object_ptr(time_signature, pos), asn1_dom_get_object_size(time_signature, pos)); */
 
-	//publication hash inside GT timesignature
+	/* Publication hash inside GT timesignature. */
 	res = asn1_dom_get_subobject(time_signature, "2.1", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
 	set_mem_buf(&fields->publication_hash, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
-	//signature value inside GT timesignature
+	/* Signature value inside GT timesignature. */
 	res = asn1_dom_get_subobject(time_signature, "3.1", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
 	set_mem_buf(&fields->signature, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
-	//find certificate
+	/* Find certificate. */
 	res = asn1_dom_get_subobject(dom, "1.0.3", 0, &pos);
 	if (res != LEGACY_OK) goto cleanup;
 
@@ -179,46 +180,51 @@ static inline unsigned get_hash_size(unsigned char id) {
 	return id == 3 ? 28 : KSI_getHashLength(id);
 }
 
-bool check_link_item(const unsigned char *chain, size_t pos, size_t length)
-{
-	if (chain == NULL || length - pos < 3)
+bool check_link_item(const unsigned char *chain, size_t pos, size_t length) {
+	if (chain == NULL || length - pos < 3) {
 		return false;
+	}
 
-	// Check linking info (LEFT_LINK = 1, RIGHT_LINK = 0, > 1 is invalid)
-	if (chain[pos + 1] > 1)
+	/* Check linking info (LEFT_LINK = 1, RIGHT_LINK = 0, > 1 is invalid). */
+	if (chain[pos + 1] > 1) {
 		return false;
+	}
 
-	// Verify imprint aslgorithm
-	if (!KSI_isHashAlgorithmSupported(chain[pos + 2]) && chain[pos + 2] != 3)
+	/* Verify imprint aslgorithm. */
+	if (!KSI_isHashAlgorithmSupported(chain[pos + 2]) && chain[pos + 2] != 3) {
 		return false;
+	}
 
-	// Verify step algorithm
-	if (!KSI_isHashAlgorithmSupported(chain[pos]) && chain[pos] != 3)
+	/* Verify step algorithm. */
+	if (!KSI_isHashAlgorithmSupported(chain[pos]) && chain[pos] != 3) {
 		return false;
+	}
 
-	// Check if next step is within the limist of the chain lenght
-	if (pos + get_hash_size(chain[pos + 2]) + 4 > length)
+	/* Check if next step is within the limist of the chain length. */
+	if (pos + get_hash_size(chain[pos + 2]) + 4 > length) {
 		return false;
+	}
 
 	return true;
 }
 
 int get_chain_item_size(const unsigned char *chain, size_t position) {
-	if (chain == NULL)
+	if (chain == NULL) {
 		return 0;
+	}
 
 	return (get_hash_size(chain[position + 2])) + 4;
 }
 
-bool is_metahash(const unsigned char *chain, size_t size)
-{
+bool is_metahash(const unsigned char *chain, size_t size) {
 	size_t i;
 
-	//Hash code 3 with length 28 is a hardcoded for formerly used SHA2-224
+	/* Hash code 3 with length 28 is a hardcoded for formerly used SHA2-224. */
 	const size_t hash_len = 28;
 
-	if (chain == NULL || size == 0)
+	if (chain == NULL || size == 0) {
 		return false;
+	}
 
 	if (chain[0] != 3) {
 		/* Sibling not SHA-224. */
@@ -241,52 +247,56 @@ bool is_metahash(const unsigned char *chain, size_t size)
 	return true;
 }
 
-bool is_last_chain_item(const unsigned char *chain, size_t position, size_t chain_length)
-{
+bool is_last_chain_item(const unsigned char *chain, size_t position, size_t chain_length) {
 	static const uint32_t LOCAL_LEVEL = 3;
 	static const uint32_t STATE_LEVEL = 19;
 	static const uint32_t NATIONAL_LEVEL = 39;
 	static const uint32_t TOP_LEVEL = 60;
 	uint32_t level_byte;
 
-	if (chain == NULL || chain_length == 0)
+	if (chain == NULL || chain_length == 0) {
 		return false;
+	}
 
-	// peek at posistion + 2 element level byte, if this is a known global depth value
-	// then we are currently at an aggregator chain border
-	if (!check_link_item(chain, position, chain_length))
+	/* Peek at posistion + 2 element level byte, if this is a known global depth value
+	 * then we are currently at an aggregator chain border. */
+	if (!check_link_item(chain, position, chain_length)) {
 		return false;
+	}
 
-	// Look for global depth
+	/* Look for global depth. */
 	size_t next_pos = position + get_chain_item_size(chain, position);
-	if (next_pos >= chain_length || !check_link_item(chain, next_pos, chain_length))
+	if (next_pos >= chain_length || !check_link_item(chain, next_pos, chain_length)) {
 		return false;
+	}
 
 	level_byte = chain[next_pos + get_hash_size(chain[next_pos + 2]) + 3];
 	if ((level_byte == LOCAL_LEVEL) ||
 		(level_byte == STATE_LEVEL) ||
 		(level_byte == NATIONAL_LEVEL) ||
-		(level_byte == TOP_LEVEL))
+		(level_byte == TOP_LEVEL)) {
 		return true;
+	}
 
 
 	next_pos = next_pos + get_chain_item_size(chain, next_pos);
-	if (next_pos >= chain_length || !check_link_item(chain, next_pos, chain_length))
+	if (next_pos >= chain_length || !check_link_item(chain, next_pos, chain_length)) {
 		return false;
+	}
 
 	level_byte = chain[next_pos + get_hash_size(chain[next_pos + 2]) + 3];
 	if ((level_byte == LOCAL_LEVEL) ||
 		(level_byte == STATE_LEVEL) ||
 		(level_byte == NATIONAL_LEVEL) ||
-		(level_byte == TOP_LEVEL))
-	{
-		// This is a known global level byte
-		// Check if the next or -2 item is a metadata imprint
-		// lets go one link deeper
+		(level_byte == TOP_LEVEL)) {
+		/* This is a known global level byte.
+		 * Check if the next or -2 item is a metadata imprint.
+		 * Let's go one link deeper. */
 
-		// if next is metadata imprint then this is the last item
-		if (is_metahash(chain + position + 2, get_hash_size(chain[position + 2]) + 1))
+		/* If next is metadata imprint then this is the last item. */
+		if (is_metahash(chain + position + 2, get_hash_size(chain[position + 2]) + 1)) {
 			return true;
+		}
 	}
 
 	return false;
@@ -308,8 +318,7 @@ bool is_last_chain_item(const unsigned char *chain, size_t position, size_t chai
 		res = KSI_##parent##_set##child(target, tmp_integer); if (res != KSI_OK) { KSI_Integer_free(tmp_integer); goto cleanup; } \
 	}
 
-int convert_rfc3161_fields(KSI_CTX *ctx, rfc3161_fields *fields, KSI_RFC3161 **out)
-{
+int convert_rfc3161_fields(KSI_CTX *ctx, rfc3161_fields *fields, KSI_RFC3161 **out) {
 	int res = LEGACY_UNKNOWN_ERROR;
 	KSI_DataHash *hash = NULL;
 	KSI_RFC3161 *rfc3161 = NULL;
@@ -348,8 +357,7 @@ cleanup:
 	return res;
 }
 
-int convert_calendar_auth_rec(KSI_CTX *ctx, rfc3161_fields *fields, KSI_CalendarAuthRec **out)
-{
+int convert_calendar_auth_rec(KSI_CTX *ctx, rfc3161_fields *fields, KSI_CalendarAuthRec **out) {
 	int res = LEGACY_UNKNOWN_ERROR;
 	static const char *oid = "1.2.840.113549.1.1.11";
 	uint32_t cert_id;
@@ -367,7 +375,7 @@ int convert_calendar_auth_rec(KSI_CTX *ctx, rfc3161_fields *fields, KSI_Calendar
 	res = KSI_PublicationData_new(ctx, &publication_data);
 	if (res != KSI_OK) goto cleanup;
 
-	//TODO: hardcoded hash size. nothing else than SHA256 has ever been used?
+	/* TODO: hardcoded hash size. Nothing else than SHA256 has ever been used? */
 	res = KSI_DataHash_fromDigest(ctx, 1, fields->publication_hash.ptr + 1, 32, &hash);
 	if (res != KSI_OK) goto cleanup;
 
@@ -442,12 +450,10 @@ int extract_aggr_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_si
 	res = KSI_HashChainLinkList_new(&links);
 	if (res != KSI_OK) goto cleanup;
 
-	while (current_pos < chain_size)
-	{
-		// some simple checks to verify that the legacy chain and it's intrerpretation is in valid state
-		if (!check_link_item(chain, current_pos, chain_size))
-		{
-			// error is logged within the sanity check
+	while (current_pos < chain_size) {
+		/* Some simple checks to verify that the legacy chain and it's intrerpretation is in valid state. */
+		if (!check_link_item(chain, current_pos, chain_size)) {
+			/* Error is logged within the sanity check. */
 			res = LEGACY_INVALID_FORMAT;
 			goto cleanup;
 		}
@@ -464,8 +470,7 @@ int extract_aggr_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_si
 		res = KSI_HashChainLink_setIsLeft(link, is_left_link);
 		if (res != KSI_OK) goto cleanup;
 
-		if (*input_level_byte + 1 < level_byte)
-		{
+		if (*input_level_byte + 1 < level_byte) {
 			SET_INTEGER(link, HashChainLink, LevelCorrection, level_byte - *input_level_byte - 1);
 		}
 
@@ -489,35 +494,33 @@ int extract_aggr_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_si
 		if (res != KSI_OK) goto cleanup;
 		link = NULL;
 
-		// if there is more than one item in the chain then it is possible to extract
-		// the hash algorithm from the second chain item, otherwise algorithm will
-		// need to be extracted from the first step of the next chain.
-		if (chain_item_count == 2)
-		{
+		/* If there is more than one item in the chain then it is possible to extract
+		 * the hash algorithm from the second chain item, otherwise algorithm will
+		 * need to be extracted from the first step of the next chain. */
+		if (chain_item_count == 2) {
 			algo_id = chain[current_pos];
 		}
 
 		*input_level_byte = level_byte;
 
-		// Increment to the next element in legacy chain
+		/* Increment to the next element in legacy chain. */
 		current_pos += hash_size + 4;
 
 		*chain_pos = current_pos;
 
-		// Try to separate the legacy aggregator chains
-		// Stop if the next after this one is a known global level
-		if ((chain_item_count > 1) && (current_pos < chain_size))
-		{
-			if (is_last_chain_item(chain, current_pos, chain_size))
-			{
+		/* Try to separate the legacy aggregator chains.
+		 * Stop if the next after this one is a known global level. */
+		if ((chain_item_count > 1) && (current_pos < chain_size)) {
+			if (is_last_chain_item(chain, current_pos, chain_size)) {
 				break;
 			}
 		}
 	}
 
-	//if algorithm was not extracted, we assume it is sha_256
-	if (algo_id == -1)
+	/* If algorithm was not extracted, we assume it is sha_256. */
+	if (algo_id == -1) {
 		algo_id = 1;
+	}
 
 	res = KSI_AggregationHashChain_new(ctx, &ksi_chain);
 	if (res != KSI_OK) goto cleanup;
@@ -556,10 +559,9 @@ int convert_aggregation_chains(KSI_CTX *ctx, const unsigned char *chain, size_t 
 	res = KSI_AggregationHashChainList_new(&aggr_chains);
 	if (res != KSI_OK) goto cleanup;
 
-	// Extraxt all legacy aggregator chains and convert to KSI
-	while (chain_pos < chain_size)
-	{
-		// extract the chain
+	/* Extraxt all legacy aggregator chains and convert to KSI. */
+	while (chain_pos < chain_size) {
+		/* Extract the chain. */
 		res = extract_aggr_chain(ctx, chain, chain_size, &chain_pos, &level_byte, &ksi_chain);
 		if (res != LEGACY_OK) goto cleanup;
 
@@ -598,9 +600,8 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 	res = KSI_HashChainLinkList_new(&links);
 	if (res != KSI_OK) goto cleanup;
 
-	while (current_pos < chain_size)
-	{
-		// some simple checks to verify that the response chain and it's intrerpretation is in valid state
+	while (current_pos < chain_size) {
+		/* Some simple checks to verify that the response chain and it's intrerpretation is in valid state. */
 		if (!check_link_item(chain, current_pos, chain_size)) {
 			res = LEGACY_INVALID_FORMAT;
 			goto cleanup;
@@ -610,14 +611,14 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 		hash_size = get_hash_size(chain[current_pos + 2]);
 		level_byte = chain[current_pos + 3 + hash_size];
 
-		// In legacy calendar chain LevelByte is always 255 (0xFF)
+		/* In legacy calendar chain LevelByte is always 255 (0xFF). */
 		if (level_byte != 0xFF) {
 			res = LEGACY_INVALID_FORMAT;
 			goto cleanup;
 		}
 
-		// Check that imprint and step algorithms match.
-		// Skip the first algorithm, since in that case the step algorithm depends on imprint algorithm
+		/* Check that imprint and step algorithms match.
+		 * Skip the first algorithm, since in that case the step algorithm depends on imprint algorithm. */
 		if (current_pos > 0 && chain[current_pos] != chain[current_pos + 2]) {
 			res = LEGACY_INVALID_FORMAT;
 			goto cleanup;
@@ -642,9 +643,8 @@ int convert_calendar_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chai
 		if (res != KSI_OK) goto cleanup;
 		link = NULL;
 
-		// Increment to the next element in legacy chain
+		/* Increment to the next element in legacy chain. */
 		current_pos += hash_size + 4;
-
 	}
 
 	if (chain_size!=current_pos) {
@@ -691,8 +691,7 @@ int calculate_aggr_chains(KSI_CTX *ctx, KSI_AggregationHashChainList *chains, KS
 
 	hash = KSI_DataHash_ref(input_hash);
 
-	for (i = 0; i < chains_count; i++)
-	{
+	for (i = 0; i < chains_count; i++) {
 		res = KSI_AggregationHashChainList_elementAt(chains, i, &aggr);
 		if (res != KSI_OK) goto cleanup;
 
@@ -744,8 +743,7 @@ int copy_indices(KSI_CTX *ctx, KSI_AggregationHashChain *chain, KSI_IntegerList 
 
 		indices_count = KSI_IntegerList_length(last_indices);
 
-		for (j = 0; j < indices_count; j++)
-		{
+		for (j = 0; j < indices_count; j++) {
 			res = KSI_IntegerList_elementAt(last_indices, j, &tmp_integer);
 			if (res != KSI_OK) goto cleanup;
 
@@ -821,8 +819,7 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	if (res != LEGACY_OK) goto cleanup;
 
 	chains_count = KSI_AggregationHashChainList_length(aggr_chains);
-	for (i = chains_count; i-- > 0;)
-	{
+	for (i = chains_count; i-- > 0;) {
 		res = KSI_AggregationHashChainList_elementAt(aggr_chains, i, &aggr_chain);
 		if (res != KSI_OK) goto cleanup;
 
@@ -830,15 +827,14 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 		if (res != KSI_OK) goto cleanup;
 	}
 
-	//Create aggregation chain indices
-	for (i = chains_count; i-- > 0;)
-	{
+	/* Create aggregation chain indices. */
+	for (i = chains_count; i-- > 0;) {
 		res = KSI_AggregationHashChainList_elementAt(aggr_chains, i, &aggr_chain);
 		if (res != KSI_OK) goto cleanup;
 
 		SET_INTEGER(aggr_chain, AggregationHashChain, AggregationTime, aggregation_time);
 
-		//copy the upper chain indices into the lower one
+		/* Copy the upper chain indices into the lower one. */
 		res = copy_indices(ctx, last_chain, &indices);
 		if (res != LEGACY_OK) goto cleanup;
 
@@ -849,16 +845,16 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 
 		links_count = KSI_HashChainLinkList_length(links);
 
-		for (j = links_count; j-- > 0;)
-		{
+		for (j = links_count; j-- > 0;) {
 			res = KSI_HashChainLinkList_elementAt(links, j, &link);
 			if (res != KSI_OK) goto cleanup;
 
 			index <<= 1;
 			res = KSI_HashChainLink_getIsLeft(link, &is_left);
 			if (res != KSI_OK) goto cleanup;
-			if (is_left)
+			if (is_left) {
 				index |= 1;
+			}
 		}
 
 		res = KSI_Integer_new(ctx, index, &tmp_index);
@@ -875,7 +871,7 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 		last_chain = aggr_chain;
 	}
 
-	//Add indices to rfc3161 record
+	/* Add indices to rfc3161 record. */
 	res = copy_indices(ctx, last_chain, &indices);
 	if (res != LEGACY_OK) goto cleanup;
 
@@ -883,7 +879,7 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	if (res != KSI_OK) goto cleanup;
 	indices = NULL;
 
-	//set input hashes and verify the hash chain
+	/* Set input hashes and verify the hash chain. */
 	res = KSI_DataHasher_open(ctx, 1, &hasher);
 	if (res != KSI_OK) goto cleanup;
 
@@ -915,7 +911,7 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	res = KSI_CalendarHashChain_setInputHash(calendar_chain, output_hash);
 	if (res != KSI_OK) goto cleanup;
 	output_hash = NULL;
-	//ksi->calendarChain->inputHash = output_hash;
+	/* ksi->calendarChain->inputHash = output_hash; */
 
 	res = KSI_SignatureBuilder_setCalendarHashChain(builder, calendar_chain);
 	if (res != KSI_OK) goto cleanup;
