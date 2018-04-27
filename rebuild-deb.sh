@@ -55,8 +55,8 @@ debuild -us -uc
 cd ..
 
 suffix=${VER}-${PKG_VERSION}.${RELEASE_VERSION}_${ARCH}
-mv libgtrfc3161${VER}_${ARCH}.changes libgtrfc3161$suffix.changes
-mv libgtrfc3161${VER}_${ARCH}.deb libgtrfc3161$suffix.deb
+mv libgtrfc3161_${VER}_${ARCH}.changes libgtrfc3161_$suffix.changes
+mv libgtrfc3161_${VER}_${ARCH}.deb libgtrfc3161_$suffix.deb
 mv libgtrfc3161-dev_${VER}_${ARCH}.deb libgtrfc3161-dev_$suffix.deb
 
 rm -rf libgtrfc3161-$VER
