@@ -91,8 +91,7 @@ static void *asn1_dom_realloc(void *ptr, size_t old_size, size_t new_size) {
 	tmp = KSI_malloc(new_size);
 	if (tmp == NULL) {
 		return NULL;
-	}
-	else {
+	} else {
 		size_t n = old_size < new_size ? old_size : new_size;
 		memcpy(tmp, ptr, n);
 		KSI_free(ptr);
@@ -153,15 +152,13 @@ void asn1_dom_dump(asn1_dom *dom) {
 
 		if (name) {
 			printf("%s", name);
-		}
-		else {
+		} else {
 			printf("[%ld]", asn1->tag);
 		}
 
 		if (asn1->structured) {
 			printf(" { \n");
-		}
-		else {
+		} else {
 			printf("\n");
 			/* printf( detailed obeject ); */
 		}

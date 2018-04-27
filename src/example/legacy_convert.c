@@ -114,8 +114,7 @@ int main(int argc, char **argv) {
 			res = LEGACY_IO_ERROR;
 			goto cleanup;
 		}
-	}
-	else {
+	} else {
 		if (!save_file(argv[2], outbuf, file_size)) {
 			fprintf(stderr, "Failed to write data to %s: %s", argv[1], strerror(errno));
 			res = LEGACY_IO_ERROR;

@@ -190,7 +190,7 @@ bool check_link_item(const unsigned char *chain, size_t pos, size_t length) {
 		return false;
 	}
 
-	/* Verify imprint aslgorithm. */
+	/* Verify imprint algorithm. */
 	if (!KSI_isHashAlgorithmSupported(chain[pos + 2]) && chain[pos + 2] != 3) {
 		return false;
 	}
@@ -480,8 +480,7 @@ int extract_aggr_chain(KSI_CTX *ctx, const unsigned char *chain, size_t chain_si
 			res = KSI_HashChainLink_setLegacyId(link, legacy_id);
 			if (res != KSI_OK) goto cleanup;
 			legacy_id = NULL;
-		}
-		else {
+		} else {
 			res = KSI_DataHash_fromDigest(ctx, link_algo_id, chain + current_pos + 3, hash_size, &hash);
 			if (res != KSI_OK) goto cleanup;
 
