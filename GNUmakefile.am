@@ -20,7 +20,7 @@
 .PHONY: doc test int-test malloc-test
 
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = src/lib src/example test doc
+SUBDIRS = src/gtrfc3161 src/example test doc
 
 docdir = ${datadir}/doc/${PACKAGE}
 dist_doc_DATA = changelog license
@@ -70,11 +70,11 @@ endif
 	./test/integration-runner ./test
 
 coverage-xml: coverage-base
-	cd ./src/lib; gcovr -r . --xml-pretty > coverage.xml
+	cd ./src/gtrfc3161; gcovr -r . --xml-pretty > coverage.xml
 
 coverage-html: coverage-base
-	cd ./src/lib; for f in *.c; do gcov $$f --object-directory .libs; done
-	lcov --capture --directory ./src/lib --output-file coverage.info
+	cd ./src/gtrfc3161; for f in *.c; do gcov $$f --object-directory .libs; done
+	lcov --capture --directory ./src/gtrfc3161 --output-file coverage.info
 	genhtml coverage.info --output-directory coverage
 
 coverage: clean coverage-xml coverage-html
