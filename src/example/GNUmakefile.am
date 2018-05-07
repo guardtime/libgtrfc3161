@@ -17,8 +17,8 @@
 # reserves and retains all trademark rights.
 #
 
-AM_CFLAGS = -g -Wall -I$(top_builddir)/src/lib
-AM_LDFLAGS = -L$(top_builddir)/src/lib -no-install -lgtrfc3161 -lksi
+AM_CFLAGS = -g -Wall -I$(top_builddir)/src/gtrfc3161
+AM_LDFLAGS = -L$(top_builddir)/src/gtrfc3161 -no-install -lgtrfc3161 -lksi
 check_PROGRAMS = gtrfc3161_convert
 
 gtrfc3161_convert_SOURCES = \

@@ -25,7 +25,7 @@ config.h
 
 .deps
 libgtrfc3161.pc
-src/lib/stamp-h1
+src/gtrfc3161/stamp-h1
 
 libtool
 
@@ -66,7 +66,7 @@ libtool
 # Binaries and log files
 src/example/.libs/
 src/example/gtrfc3161_convert
-src/lib/.libs/
+src/gtrfc3161/.libs/
 *.log
 test/.dirstamp
 test/.libs/

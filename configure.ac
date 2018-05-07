@@ -21,7 +21,7 @@ AC_INIT([libgtrfc3161], m4_esyscmd([tr -d [:space:] <VERSION]), [support@guardti
 AC_CONFIG_FILES([libgtrfc3161.pc])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_HEADERS([src/lib/config.h])
+AC_CONFIG_HEADERS([src/gtrfc3161/config.h])
 AC_CANONICAL_TARGET
 
 # Before making a release, the LTVER string should be modified. The
@@ -117,7 +117,7 @@ AC_ARG_ENABLE([full-test-coverage],
 AM_CONDITIONAL([FULL_TEST_COVERAGE], [test x$enable_full_test_coverage = xtrue])
 
 AC_MSG_NOTICE([Update version.h])
-rm -f src/lib/version.h
+rm -f src/gtrfc3161/version.h
 VER=($(echo $PACKAGE_VERSION | tr "." " "))
 VER_MAJOR=${VER[[0]]}
 VER_MINOR=${VER[[1]]}
@@ -125,9 +125,9 @@ VER_BUILD=${VER[[2]]}
 AC_SUBST(VER_MAJOR)
 AC_SUBST(VER_MINOR)
 AC_SUBST(VER_BUILD)
-AC_CONFIG_FILES([src/lib/version.h])
+AC_CONFIG_FILES([src/gtrfc3161/version.h])
 
 
-AC_CONFIG_FILES([GNUmakefile src/lib/GNUmakefile test/GNUmakefile doc/GNUmakefile src/example/GNUmakefile])
+AC_CONFIG_FILES([GNUmakefile src/gtrfc3161/GNUmakefile test/GNUmakefile doc/GNUmakefile src/example/GNUmakefile])
 AC_CONFIG_FILES([packaging/rpm/libgtrfc3161.spec packaging/deb/control packaging/deb/rules])
 AC_OUTPUT

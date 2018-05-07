@@ -17,8 +17,8 @@
 # reserves and retains all trademark rights.
 #
 
-AM_CFLAGS=-g -Wall -I$(top_builddir)/src/lib
-AM_LDFLAGS=-L$(top_builddir)/src/lib -no-install -lgtrfc3161 -lksi
+AM_CFLAGS=-g -Wall -I$(top_builddir)/src/gtrfc3161
+AM_LDFLAGS=-L$(top_builddir)/src/gtrfc3161 -no-install -lgtrfc3161 -lksi
 check_PROGRAMS=runner integration-runner
 
 runner_SOURCES= \
@@ -39,7 +39,7 @@ integration_runner_SOURCES= \
 
 if FULL_TEST_COVERAGE
 check_PROGRAMS+= malloc-runner
-malloc_runner_LDFLAGS=-L$(top_builddir)/src/lib -no-install -lgtrfc3161mlc -lksi
+malloc_runner_LDFLAGS=-L$(top_builddir)/src/gtrfc3161 -no-install -lgtrfc3161mlc -lksi
 malloc_runner_SOURCES= \
 	cutest/CuTest.c \
 	cutest/CuTest.h \

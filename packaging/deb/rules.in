@@ -35,7 +35,7 @@ INSTALL_DOC=$(INSTALL_ROOT)/share/doc
 # Helper definitions and targets for debian rules.
 
 define is-in-build-dir
-	@test -f debian/rules -a -f src/lib/tsconvert.h || (echo Not in correct directory; exit 1)
+	@test -f debian/rules -a -f src/gtrfc3161/tsconvert.h || (echo Not in correct directory; exit 1)
 endef
 
 define is-root
