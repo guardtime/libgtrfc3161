@@ -15,33 +15,83 @@ typedef struct mem_buf_st {
 	size_t size;
 } mem_buf;
 
-void set_mem_buf(mem_buf *b, const unsigned char *ptr, size_t size) {
-	if (b == NULL || ptr == NULL) {
-		return;
-	}
+typedef struct root_and_affixes_st {
+	mem_buf object;
+	mem_buf prefix;
+	mem_buf root;
+	mem_buf suffix;
+} root_and_affixes;
 
-	b->ptr = ptr;
-	b->size = size;
-}
+typedef struct rfc3161_fields_st {
+	root_and_affixes tst_info;
 
-typedef struct rfc3161_fields_st{
-	mem_buf input_hash;
-	mem_buf tst_info_prefix;
-	mem_buf tst_info_suffix;
+	mem_buf certficate;
 
-	mem_buf tst_info_hash;
-	mem_buf signed_attr_prefix;
-	mem_buf signed_attr_suffix;
+	root_and_affixes signed_attr;
 
+	mem_buf time_signature;
 	mem_buf location_chain;
 	mem_buf history_chain;
-
-	uint64_t publication_time;
+	mem_buf publication_time;
 	mem_buf publication_hash;
-
 	mem_buf signature;
-	mem_buf certficate;
 } rfc3161_fields;
+
+static int decode_integer(const unsigned char *data, size_t length, uint64_t *out) {
+	int res = LEGACY_UNKNOWN_ERROR;
+	uint64_t result = 0;
+	size_t i;
+
+	if (data == NULL || length > 8 || out == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
+	}
+
+	for (i = 0; i < length; i++) {
+		result = (result << 8);
+		result += data[i];
+	}
+
+	*out = result;
+	res = LEGACY_OK;
+
+cleanup:
+
+	return res;
+}
+
+static int asn1_dom_get_subobject_root_and_affixes_buf(const asn1_dom *dom, const char *path, root_and_affixes *out) {
+	int res = LEGACY_UNKNOWN_ERROR;
+	ASN1POSITION pos = 0;
+
+	if (dom == NULL || path == NULL || out == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
+	}
+
+	if (out->object.ptr == NULL || out->object.size == 0) {
+		res = LEGACY_INVALID_STATE;
+		goto cleanup;
+	}
+
+	res = asn1_dom_get_subobject(dom, path, &pos);
+	if (res != LEGACY_OK) goto cleanup;
+
+	res = asn1_dom_get_root_buf(dom, pos, &out->root.ptr, &out->root.size);
+	if (res != LEGACY_OK) goto cleanup;
+
+	res = asn1_dom_get_prefix_buf(dom, pos, &out->prefix.ptr, &out->prefix.size);
+	if (res != LEGACY_OK) goto cleanup;
+
+	res = asn1_dom_get_suffix_buf(dom, pos, out->object.size, &out->suffix.ptr, &out->suffix.size);
+	if (res != LEGACY_OK) goto cleanup;
+
+	res = LEGACY_OK;
+
+cleanup:
+
+	return res;
+}
 
 int parse_values_from_der(const unsigned char *buffer, size_t size, rfc3161_fields *fields) {
 	int res = LEGACY_UNKNOWN_ERROR;
@@ -49,7 +99,6 @@ int parse_values_from_der(const unsigned char *buffer, size_t size, rfc3161_fiel
 	asn1_dom *tst_info = NULL;
 	asn1_dom *signed_attr = NULL;
 	asn1_dom *time_signature = NULL;
-	ASN1POSITION pos, tst_info_pos, signed_attr_pos, time_signature_pos;
 
 	if (buffer == NULL || fields == NULL || size < 2) {
 		res = LEGACY_INVALID_ARGUMENT;
@@ -69,99 +118,63 @@ int parse_values_from_der(const unsigned char *buffer, size_t size, rfc3161_fiel
 	if (res != LEGACY_OK) goto cleanup;
 
 	/* Find encapsulated TSTInfo object. */
-	res = asn1_dom_get_subobject(dom, "1.0.2.1.0", 0, &tst_info_pos);
+	res = asn1_dom_get_subobject_buf(dom, "1.0.2.1.0", 1, &fields->tst_info.object.ptr, &fields->tst_info.object.size);
 	if (res != LEGACY_OK) goto cleanup;
 
 	/* Parse TSTInfo here. */
-	res = asn1_parse_object(tst_info, asn1_dom_get_body_ptr(dom, tst_info_pos), asn1_dom_get_body_size(dom, tst_info_pos), 0, 0);
+	res = asn1_parse_object(tst_info, fields->tst_info.object.ptr, fields->tst_info.object.size, 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
-	/* Find input hash inside TSTInfo. */
-	res = asn1_dom_get_subobject(tst_info, "2.1", 0, &pos);
+	res = asn1_dom_get_subobject_root_and_affixes_buf(tst_info, "2.1", &fields->tst_info);
 	if (res != LEGACY_OK) goto cleanup;
 
-	/* An algorithm identifier has to be prepended to input hash in KSI format. */
-	set_mem_buf(&fields->input_hash, asn1_dom_get_body_ptr(tst_info, pos), asn1_dom_get_body_size(tst_info, pos));
-
-	set_mem_buf(&fields->tst_info_prefix, tst_info->data, tst_info->objects[pos].offset + 2);
-
-	set_mem_buf(&fields->tst_info_suffix,
-				tst_info->data + tst_info->objects[pos].offset + asn1_dom_get_object_size(tst_info, pos),
-				asn1_dom_get_body_size(dom, tst_info_pos) - tst_info->objects[pos].offset - asn1_dom_get_object_size(tst_info, pos));
-
+	/* Find certificate. */
+	res = asn1_dom_get_subobject_buf(dom, "1.0.3", 1, &fields->certficate.ptr, &fields->certficate.size);
+	if (res != LEGACY_OK) goto cleanup;
 
 	/* Find signed attributes object. */
-	res = asn1_dom_get_subobject(dom, "1.0.4.0.3", 0, &signed_attr_pos);
+	res = asn1_dom_get_subobject_buf(dom, "1.0.4.0.3", 0, &fields->signed_attr.object.ptr, &fields->signed_attr.object.size);
 	if (res != LEGACY_OK) goto cleanup;
 
 	/* Parse signed attributes here. */
-	res = asn1_parse_object(signed_attr, asn1_dom_get_object_ptr(dom, signed_attr_pos), asn1_dom_get_object_size(dom, signed_attr_pos), 0, 0);
+	res = asn1_parse_object(signed_attr, fields->signed_attr.object.ptr, fields->signed_attr.object.size, 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
-	/* Find signed data inside signed attributes. */
-	res = asn1_dom_get_subobject(signed_attr, "1.1.0", 0, &pos);
+	res = asn1_dom_get_subobject_root_and_affixes_buf(signed_attr, "1.1.0", &fields->signed_attr);
 	if (res != LEGACY_OK) goto cleanup;
-
 	/* NB!
 	 * Here the first byte is 0xa0 (class 2/structured/tag = 0).
 	 * encodeToDER produces 0x31 (class 0/structured/tag = 16 (sequence)).
 	 * The 1st byte of fields->signed_attr_prefix has to be changed to 0x31. */
-
-	set_mem_buf(&fields->signed_attr_prefix, signed_attr->data, signed_attr->objects[pos].offset + signed_attr->objects[pos].header_length);
-	((unsigned char*)fields->signed_attr_prefix.ptr)[0] = 0x31;
-
-	set_mem_buf(&fields->tst_info_hash, asn1_dom_get_body_ptr(signed_attr, pos), asn1_dom_get_body_size(signed_attr, pos));
-
-	/* This should always result in 0 length data. */
-	set_mem_buf(&fields->signed_attr_suffix,
-				signed_attr->data + signed_attr->objects[pos].offset + asn1_dom_get_object_size(signed_attr, pos),
-				asn1_dom_get_object_size(dom, signed_attr_pos) - signed_attr->objects[pos].offset - asn1_dom_get_object_size(signed_attr, pos));
+	((unsigned char*)fields->signed_attr.prefix.ptr)[0] = 0x31;
 
 	/* Find time_signature object. */
-	res = asn1_dom_get_subobject(dom, "1.0.4.0.5", 0, &time_signature_pos);
+	res = asn1_dom_get_subobject_buf(dom, "1.0.4.0.5", 1, &fields->time_signature.ptr, &fields->time_signature.size);
 	if (res != LEGACY_OK) goto cleanup;
 
 	/* Parse signed attributes here. */
-	res = asn1_parse_object(time_signature, asn1_dom_get_body_ptr(dom, time_signature_pos), asn1_dom_get_body_size(dom, time_signature_pos), 0, 0);
+	res = asn1_parse_object(time_signature, fields->time_signature.ptr, fields->time_signature.size, 0, 0);
 	if (res != LEGACY_OK) goto cleanup;
 
 	/* Location chain inside GT timesignature. */
-	res = asn1_dom_get_subobject(time_signature, "0", 0, &pos);
+	res = asn1_dom_get_subobject_buf(time_signature, "0", 1, &fields->location_chain.ptr, &fields->location_chain.size);
 	if (res != LEGACY_OK) goto cleanup;
-
-	set_mem_buf(&fields->location_chain, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	/* History chain inside GT timesignature. */
-	res = asn1_dom_get_subobject(time_signature, "1", 0, &pos);
+	res = asn1_dom_get_subobject_buf(time_signature, "1", 1, &fields->history_chain.ptr, &fields->history_chain.size);
 	if (res != LEGACY_OK) goto cleanup;
-
-	set_mem_buf(&fields->history_chain, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	/* Publication time inside GT timesignature. */
-	res = asn1_dom_get_subobject(time_signature, "2.0", 0, &pos);
+	res = asn1_dom_get_subobject_buf(time_signature, "2.0", 1, &fields->publication_time.ptr, &fields->publication_time.size);
 	if (res != LEGACY_OK) goto cleanup;
-
-	res = asn1_decode_integer(time_signature, pos, &fields->publication_time);
-	if (res != LEGACY_OK) goto cleanup;
-	/* set_mem_buf(&fields->published_data, asn1_dom_get_object_ptr(time_signature, pos), asn1_dom_get_object_size(time_signature, pos)); */
 
 	/* Publication hash inside GT timesignature. */
-	res = asn1_dom_get_subobject(time_signature, "2.1", 0, &pos);
+	res = asn1_dom_get_subobject_buf(time_signature, "2.1", 1, &fields->publication_hash.ptr, &fields->publication_hash.size);
 	if (res != LEGACY_OK) goto cleanup;
-
-	set_mem_buf(&fields->publication_hash, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
 
 	/* Signature value inside GT timesignature. */
-	res = asn1_dom_get_subobject(time_signature, "3.1", 0, &pos);
+	res = asn1_dom_get_subobject_buf(time_signature, "3.1", 1, &fields->signature.ptr, &fields->signature.size);
 	if (res != LEGACY_OK) goto cleanup;
-
-	set_mem_buf(&fields->signature, asn1_dom_get_body_ptr(time_signature, pos), asn1_dom_get_body_size(time_signature, pos));
-
-	/* Find certificate. */
-	res = asn1_dom_get_subobject(dom, "1.0.3", 0, &pos);
-	if (res != LEGACY_OK) goto cleanup;
-
-	set_mem_buf(&fields->certficate, asn1_dom_get_body_ptr(dom, pos), asn1_dom_get_body_size(dom, pos));
 
 	res = LEGACY_OK;
 
@@ -328,7 +341,7 @@ int convert_rfc3161_fields(KSI_CTX *ctx, rfc3161_fields *fields, KSI_RFC3161 **o
 		goto cleanup;
 	}
 
-	res = KSI_DataHash_fromDigest(ctx, 1, fields->input_hash.ptr, 32, &hash);
+	res = KSI_DataHash_fromDigest(ctx, 1, fields->tst_info.root.ptr, 32, &hash);
 	if (res != KSI_OK) goto cleanup;
 
 	res = KSI_RFC3161_new(ctx, &rfc3161);
@@ -339,12 +352,12 @@ int convert_rfc3161_fields(KSI_CTX *ctx, rfc3161_fields *fields, KSI_RFC3161 **o
 	hash = NULL;
 
 	SET_INTEGER(rfc3161, RFC3161, TstInfoAlgo, 1);
-	SET_OCTET_STRING(rfc3161, RFC3161, TstInfoPrefix, fields->tst_info_prefix.ptr, fields->tst_info_prefix.size);
-	SET_OCTET_STRING(rfc3161, RFC3161, TstInfoSuffix, fields->tst_info_suffix.ptr, fields->tst_info_suffix.size);
+	SET_OCTET_STRING(rfc3161, RFC3161, TstInfoPrefix, fields->tst_info.prefix.ptr, fields->tst_info.prefix.size);
+	SET_OCTET_STRING(rfc3161, RFC3161, TstInfoSuffix, fields->tst_info.suffix.ptr, fields->tst_info.suffix.size);
 
 	SET_INTEGER(rfc3161, RFC3161, SigAttrAlgo, 1);
-	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrPrefix, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size);
-	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrSuffix, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size);
+	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrPrefix, fields->signed_attr.prefix.ptr, fields->signed_attr.prefix.size);
+	SET_OCTET_STRING(rfc3161, RFC3161, SigAttrSuffix, fields->signed_attr.suffix.ptr, fields->signed_attr.suffix.size);
 
 	*out = rfc3161;
 	rfc3161 = NULL;
@@ -366,6 +379,7 @@ int convert_calendar_auth_rec(KSI_CTX *ctx, rfc3161_fields *fields, KSI_Calendar
 	KSI_PublicationData *publication_data = NULL;
 	KSI_PKISignedData *pki_signature = NULL;
 	KSI_Utf8String *utf8_string = NULL;
+	uint64_t publication_time = 0;
 
 	if (ctx == NULL || fields == NULL || out == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
@@ -383,7 +397,9 @@ int convert_calendar_auth_rec(KSI_CTX *ctx, rfc3161_fields *fields, KSI_Calendar
 	if (res != KSI_OK) goto cleanup;
 	hash = NULL;
 
-	SET_INTEGER(publication_data, PublicationData, Time, fields->publication_time);
+	res = decode_integer(fields->publication_time.ptr, fields->publication_time.size, &publication_time);
+	if (res != LEGACY_OK) goto cleanup;
+	SET_INTEGER(publication_data, PublicationData, Time, publication_time);
 
 	res = KSI_CalendarAuthRec_new(ctx, &cal_auth_rec);
 	if (res != KSI_OK) goto cleanup;
@@ -785,6 +801,7 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	uint64_t index;
 	int is_left;
 	size_t j;
+	uint64_t publication_time = 0;
 
 	if (ctx == NULL || builder == NULL || fields == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
@@ -806,7 +823,9 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	res = convert_calendar_chain(ctx, fields->history_chain.ptr, fields->history_chain.size, &calendar_chain);
 	if (res != LEGACY_OK) goto cleanup;
 
-	SET_INTEGER(calendar_chain, CalendarHashChain, PublicationTime, fields->publication_time);
+	res = decode_integer(fields->publication_time.ptr, fields->publication_time.size, &publication_time);
+	if (res != LEGACY_OK) goto cleanup;
+	SET_INTEGER(calendar_chain, CalendarHashChain, PublicationTime, publication_time);
 
 	res = KSI_CalendarHashChain_calculateAggregationTime(calendar_chain, &aggregation_time);
 	if (res != KSI_OK) goto cleanup;
@@ -882,11 +901,11 @@ int create_ksi_signature(KSI_CTX *ctx, KSI_SignatureBuilder *builder, rfc3161_fi
 	res = KSI_DataHasher_open(ctx, 1, &hasher);
 	if (res != KSI_OK) goto cleanup;
 
-	res = KSI_DataHasher_add(hasher, fields->signed_attr_prefix.ptr, fields->signed_attr_prefix.size);
+	res = KSI_DataHasher_add(hasher, fields->signed_attr.prefix.ptr, fields->signed_attr.prefix.size);
 	if (res != KSI_OK) goto cleanup;
-	res = KSI_DataHasher_add(hasher, fields->tst_info_hash.ptr, fields->tst_info_hash.size);
+	res = KSI_DataHasher_add(hasher, fields->signed_attr.root.ptr, fields->signed_attr.root.size);
 	if (res != KSI_OK) goto cleanup;
-	res = KSI_DataHasher_add(hasher, fields->signed_attr_suffix.ptr, fields->signed_attr_suffix.size);
+	res = KSI_DataHasher_add(hasher, fields->signed_attr.suffix.ptr, fields->signed_attr.suffix.size);
 	if (res != KSI_OK) goto cleanup;
 
 	res = KSI_DataHasher_close(hasher, &hash1);
