@@ -32,6 +32,8 @@
 static CuSuite* initSuite(void) {
 	CuSuite *suite = CuSuiteNew();
 
+	addSuite(suite, LegacyTest_ASN_getSuite);
+
 	return suite;
 }
 

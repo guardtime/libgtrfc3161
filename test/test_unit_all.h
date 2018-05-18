@@ -26,6 +26,8 @@
 extern "C" {
 #endif
 
+CuSuite* LegacyTest_ASN_getSuite(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -108,13 +108,13 @@ int asn1_dom_add_object(asn1_dom *dom, asn1_object *asn1) {
 	}
 
 	if (dom->allocated == dom->used) {
-		asn1_object *tmp = (asn1_object*)asn1_dom_realloc(dom->objects, dom->allocated * sizeof(asn1_object), 1.5 * dom->allocated * sizeof(asn1_object));
+		asn1_object *tmp = (asn1_object*)asn1_dom_realloc(dom->objects, dom->allocated * sizeof(asn1_object), 2 * dom->allocated * sizeof(asn1_object));
 		if (!tmp) {
 			res = LEGACY_OUT_OF_MEMORY;
 			goto cleanup;
 		}
 		dom->objects = tmp;
-		dom->allocated = 1.5 * dom->allocated;
+		dom->allocated = 2 * dom->allocated;
 	}
 	dom->objects[dom->used] = (*asn1);
 	dom->used++;
@@ -189,36 +189,44 @@ int asn1_dom_find_child(const asn1_dom *dom, ASN1POSITION parent_index, unsigned
 	return -1;
 }
 
-int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent_index, ASN1POSITION index) {
-	int child_found = 0;
+int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent_index, ASN1POSITION child_index, ASN1POSITION *index) {
+	int res = LEGACY_UNKNOWN_ERROR;
+	int children_found = 0;
 	unsigned i;
-	asn1_object *parent = NULL;
+	unsigned child_level;
 
-	if (dom == NULL || dom->objects == NULL) {
-		return -1;
-	}
-	if (parent_index >= dom->used - 1) {
-		return -1;
+	if (dom == NULL || dom->objects == NULL || dom->used == 0 || index == NULL) {
+		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
 	}
 
-	parent=&dom->objects[parent_index];
+	if (dom->used <= parent_index + 1) {
+		res = LEGACY_INVALID_FORMAT;
+		goto cleanup;
+	}
 
+	child_level = dom->objects[parent_index].level + 1;
+
+	res = LEGACY_INVALID_FORMAT;
 	for (i = parent_index + 1; i < dom->used; i++) {
 
-		if (dom->objects[i].level == parent->level) {
-			return -1;
+		if (dom->objects[i].level < child_level) {
+			goto cleanup;
 		}
 
-		if (dom->objects[i].level == parent->level + 1) {
-			child_found++;
-		}
-
-		if (child_found - 1 == index) {
-			return i;
+		if (dom->objects[i].level == child_level) {
+			if(children_found == child_index) {
+				*index = i;
+				res = LEGACY_OK;
+				goto cleanup;
+			}
+			children_found++;
 		}
 	}
 
-	return -1;
+cleanup:
+
+	return res;
 }
 
 int asn1_dom_get_subobject(const asn1_dom *dom, const char *path, ASN1POSITION *out) {
@@ -227,6 +235,7 @@ int asn1_dom_get_subobject(const asn1_dom *dom, const char *path, ASN1POSITION *
 	int nextpos;
 	char *next = NULL;
 	ASN1POSITION index = 0;
+	ASN1POSITION tmp;
 
 	if (dom == NULL || path == NULL || out == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
@@ -242,10 +251,9 @@ int asn1_dom_get_subobject(const asn1_dom *dom, const char *path, ASN1POSITION *
 			goto cleanup;
 		}
 
-		if ((index = asn1_dom_get_child(dom, index, nextpos)) == -1) {
-			res = LEGACY_INVALID_FORMAT;
-			goto cleanup;
-		}
+		res = asn1_dom_get_child(dom, index, nextpos, &tmp);
+		if (res != LEGACY_OK) goto cleanup;
+		index = tmp;
 
 		if (*next == '.') {
 			p = next + 1;

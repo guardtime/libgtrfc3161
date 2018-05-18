@@ -27,7 +27,8 @@ runner_SOURCES= \
 	support_tests.c \
 	support_tests.h \
 	test_unit_all.c \
-	test_unit_all.h
+	test_unit_all.h \
+	test_unit_asn.c
 
 integration_runner_SOURCES= \
 	cutest/CuTest.c \
