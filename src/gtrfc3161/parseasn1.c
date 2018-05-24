@@ -102,8 +102,13 @@ static void *asn1_dom_realloc(void *ptr, size_t old_size, size_t new_size) {
 int asn1_dom_add_object(asn1_dom *dom, asn1_object *asn1) {
 	int res = LEGACY_UNKNOWN_ERROR;
 
-	if (dom == NULL || dom->objects == NULL || asn1 == NULL) {
+	if (dom == NULL || asn1 == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
+		goto cleanup;
+	}
+
+	if (dom->objects == NULL) {
+		res = LEGACY_INVALID_STATE;
 		goto cleanup;
 	}
 
@@ -195,19 +200,24 @@ int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent_index, ASN1POSIT
 	unsigned i;
 	unsigned child_level;
 
-	if (dom == NULL || dom->objects == NULL || dom->used == 0 || index == NULL) {
+	if (dom == NULL || index == NULL) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto cleanup;
 	}
 
+	if (dom->objects == NULL || dom->used == 0) {
+		res = LEGACY_INVALID_STATE;
+		goto cleanup;
+	}
+
 	if (dom->used <= parent_index + 1) {
-		res = LEGACY_INVALID_FORMAT;
+		res = LEGACY_ASN1_OBJECT_NOT_FOUND;
 		goto cleanup;
 	}
 
 	child_level = dom->objects[parent_index].level + 1;
 
-	res = LEGACY_INVALID_FORMAT;
+	res = LEGACY_ASN1_OBJECT_NOT_FOUND;
 	for (i = parent_index + 1; i < dom->used; i++) {
 
 		if (dom->objects[i].level < child_level) {
@@ -257,6 +267,8 @@ int asn1_dom_get_subobject(const asn1_dom *dom, const char *path, ASN1POSITION *
 
 		if (*next == '.') {
 			p = next + 1;
+		} else {
+			p = next;
 		}
 	} while (*next);
 

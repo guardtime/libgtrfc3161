@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2016 Guardtime, Inc.
+ * Copyright 2013-2018 Guardtime, Inc.
  *
  * This file is part of the Guardtime client SDK.
  *
@@ -121,7 +121,7 @@ static void Test_Asn1_Dom_get_child(CuTest* tc) {
 	CuAssert(tc, "Unable to create ASN dom.", res == LEGACY_OK);
 
 	res = asn1_dom_get_child(dom, 0, 0, &child);
-	CuAssert(tc, "Empty ASN dom should not have any objects or children.", res == LEGACY_INVALID_ARGUMENT);
+	CuAssert(tc, "Empty ASN dom should not have any objects or children.", res == LEGACY_INVALID_STATE);
 
 	for (i = 0; i < len; i++) {
 		res = asn1_dom_add_object(dom, &obj[i]);
@@ -129,7 +129,7 @@ static void Test_Asn1_Dom_get_child(CuTest* tc) {
 	}
 
 	res = asn1_dom_get_child(dom, 0, 0, &child);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 1, 0, NULL);
 	CuAssert(tc, "Should not be able to get ASN object to NULL child.", res == LEGACY_INVALID_ARGUMENT);
@@ -147,10 +147,10 @@ static void Test_Asn1_Dom_get_child(CuTest* tc) {
 	CuAssert(tc, "Unable to get ASN object child.", res == LEGACY_OK && child == 9);
 
 	res = asn1_dom_get_child(dom, 1, 4, &child);
-	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 2, 0, &child);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 3, 0, &child);
 	CuAssert(tc, "Unable to get ASN object child.", res == LEGACY_OK && child == 4);
@@ -159,34 +159,34 @@ static void Test_Asn1_Dom_get_child(CuTest* tc) {
 	CuAssert(tc, "Unable to get ASN object child.", res == LEGACY_OK && child == 5);
 
 	res = asn1_dom_get_child(dom, 3, 2, &child);
-	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 5, 0, &child);
 	CuAssert(tc, "Unable to get ASN object child.", res == LEGACY_OK && child == 6);
 
 	res = asn1_dom_get_child(dom, 5, 1, &child);
-	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 6, 0, &child);
 	CuAssert(tc, "Unable to get ASN object child.", res == LEGACY_OK && child == 7);
 
 	res = asn1_dom_get_child(dom, 6, 1, &child);
-	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have that many children.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 9, 0, &child);
 	CuAssert(tc, "Unable to get ASN object child.", res == LEGACY_OK && child == 10);
 
 	res = asn1_dom_get_child(dom, 10, 0, &child);
-	CuAssert(tc, "The last ASN object can't have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "The last ASN object can't have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 11, 0, &child);
-	CuAssert(tc, "Nonexistent ASN object can't have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "Nonexistent ASN object can't have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, -1, 0, &child);
-	CuAssert(tc, "Nonexistent ASN object can't have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "Nonexistent ASN object can't have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_child(dom, 1, -1, &child);
-	CuAssert(tc, "ASN object children can't be counted backwards.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object children can't be counted backwards.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	asn1_dom_free(dom);
 }
@@ -215,7 +215,7 @@ static void Test_Asn1_Dom_get_subobject(CuTest* tc) {
 	CuAssert(tc, "Unable to create ASN dom.", res == LEGACY_OK);
 
 	res = asn1_dom_get_subobject(dom, "0", &index);
-	CuAssert(tc, "Empty ASN dom should not have any objects or children.", res == LEGACY_INVALID_ARGUMENT);
+	CuAssert(tc, "Empty ASN dom should not have any objects or children.", res == LEGACY_INVALID_STATE);
 
 	for (i = 0; i < len; i++) {
 		res = asn1_dom_add_object(dom, &obj[i]);
@@ -241,7 +241,7 @@ static void Test_Asn1_Dom_get_subobject(CuTest* tc) {
 	CuAssert(tc, "Should not be able to get ASN subobject by non-numeric path.", res == LEGACY_INVALID_FORMAT);
 
 	res = asn1_dom_get_subobject(dom, "-1", &index);
-	CuAssert(tc, "Should not be able to get ASN subobject by negative path.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "Should not be able to get ASN subobject by negative path.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_subobject(dom, "0.1.", &index);
 	CuAssert(tc, "Should not be able to get ASN subobject by incorrectly formatted path.", res == LEGACY_INVALID_FORMAT);
@@ -262,7 +262,7 @@ static void Test_Asn1_Dom_get_subobject(CuTest* tc) {
 	CuAssert(tc, "Unable to get ASN subobject.", res == LEGACY_OK && index == 9);
 
 	res = asn1_dom_get_subobject(dom, "3", &index);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_subobject(dom, "0.0", &index);
 	CuAssert(tc, "Unable to get ASN subobject.", res == LEGACY_OK && index == 2);
@@ -271,16 +271,16 @@ static void Test_Asn1_Dom_get_subobject(CuTest* tc) {
 	CuAssert(tc, "Unable to get ASN subobject.", res == LEGACY_OK && index == 4);
 
 	res = asn1_dom_get_subobject(dom, "0.2", &index);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_subobject(dom, "1.0", &index);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_subobject(dom, "2.0", &index);
 	CuAssert(tc, "Unable to get ASN subobject.", res == LEGACY_OK && index == 10);
 
 	res = asn1_dom_get_subobject(dom, "2.1", &index);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_subobject(dom, "0.0.0", &index);
 	CuAssert(tc, "Unable to get ASN subobject.", res == LEGACY_OK && index == 3);
@@ -295,10 +295,10 @@ static void Test_Asn1_Dom_get_subobject(CuTest* tc) {
 	CuAssert(tc, "Unable to get ASN subobject.", res == LEGACY_OK && index == 7);
 
 	res = asn1_dom_get_subobject(dom, "0.1.1.1", &index);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	res = asn1_dom_get_subobject(dom, "0.1.1.0.0", &index);
-	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_INVALID_FORMAT);
+	CuAssert(tc, "ASN object should not have a child.", res == LEGACY_ASN1_OBJECT_NOT_FOUND);
 
 	asn1_dom_free(dom);
 }
