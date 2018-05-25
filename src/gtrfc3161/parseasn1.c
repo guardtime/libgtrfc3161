@@ -463,7 +463,7 @@ int asn1_parse_header(const unsigned char *data, size_t length, asn1_object *asn
 	/* DER requires that each universal class type uses a fixed encoding: */
 	if (obj_class == 0) {
 		switch (tag) {
-			/* primitive encoding*/
+			/* primitive encoding */
 			case 0x01: /* boolean */
 			case 0x02: /* integer */
 			case 0x03: /* bit string */

@@ -523,7 +523,7 @@ static void Test_Asn1_Dom_parse_header_tag_and_length(CuTest* tc) {
 	CuAssert(tc, "ASN1 object header parsed incorrectly.", obj.tag == 2 && obj.header_length == 3 && obj.body_length == 128);
 
 	res = asn1_parse_header(&data[2][0], 130, &obj);
-	CuAssert(tc, "The buffer size must be large enough for ASN1 object.", res == LEGACY_ASN1_PARSING_ERROR);
+	CuAssert(tc, "ASN1 object header should not indicate data beyond buffer size.", res == LEGACY_ASN1_PARSING_ERROR);
 
 	res = asn1_parse_header(&data[3][0], 389, &obj);
 	CuAssert(tc, "Length must be encoded with the minimum number of octets.", res == LEGACY_INVALID_FORMAT);
@@ -533,7 +533,7 @@ static void Test_Asn1_Dom_parse_header_tag_and_length(CuTest* tc) {
 	CuAssert(tc, "ASN1 object header parsed incorrectly.", obj.tag == 3 && obj.header_length == 4 && obj.body_length == 384);
 
 	res = asn1_parse_header(&data[4][0], 387, &obj);
-	CuAssert(tc, "The buffer size must be large enough for ASN1 object.", res == LEGACY_ASN1_PARSING_ERROR);
+	CuAssert(tc, "ASN1 object header should not indicate data beyond buffer size.", res == LEGACY_ASN1_PARSING_ERROR);
 
 	res = asn1_parse_header(&data[5][0], 9, &obj);
 	CuAssert(tc, "High-tag-form is reserved for tag numbers 31 and higher.", res == LEGACY_INVALID_FORMAT);
@@ -543,7 +543,7 @@ static void Test_Asn1_Dom_parse_header_tag_and_length(CuTest* tc) {
 	CuAssert(tc, "ASN1 object header parsed incorrectly.", obj.tag == 30 && obj.header_length == 2 && obj.body_length == 6);
 
 	res = asn1_parse_header(&data[6][0], 7, &obj);
-	CuAssert(tc, "The buffer size must be large enough for ASN1 object.", res == LEGACY_ASN1_PARSING_ERROR);
+	CuAssert(tc, "ASN1 object header should not indicate data beyond buffer size.", res == LEGACY_ASN1_PARSING_ERROR);
 
 	res = asn1_parse_header(&data[7][0], 10, &obj);
 	CuAssert(tc, "Tag number must be encoded with the minimum number of octers.", res == LEGACY_INVALID_FORMAT);
@@ -553,14 +553,14 @@ static void Test_Asn1_Dom_parse_header_tag_and_length(CuTest* tc) {
 	CuAssert(tc, "ASN1 object header parsed incorrectly.", obj.tag == 31 && obj.header_length == 3 && obj.body_length == 6);
 
 	res = asn1_parse_header(&data[8][0], 8, &obj);
-	CuAssert(tc, "The buffer size must be large enough for ASN1 object.", res == LEGACY_ASN1_PARSING_ERROR);
+	CuAssert(tc, "ASN1 object header should not indicate data beyond buffer size.", res == LEGACY_ASN1_PARSING_ERROR);
 
 	res = asn1_parse_header(&data[9][0], 10, &obj);
 	CuAssert(tc, "Unable to parse ASN object header.", res == LEGACY_OK);
 	CuAssert(tc, "ASN1 object header parsed incorrectly.", obj.tag == 128 && obj.header_length == 4 && obj.body_length == 6);
 
 	res = asn1_parse_header(&data[9][0], 9, &obj);
-	CuAssert(tc, "The buffer size must be large enough for ASN1 object.", res == LEGACY_ASN1_PARSING_ERROR);
+	CuAssert(tc, "ASN1 object header should not indicate data beyond buffer size.", res == LEGACY_ASN1_PARSING_ERROR);
 
 }
 
