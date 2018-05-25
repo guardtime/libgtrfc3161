@@ -12,6 +12,7 @@ typedef struct tag_name_st {
 } tag_name;
 
 static const tag_name tag_names[] = {
+	{ 0x01, "BOOLEAN" },
 	{ 0x02, "INTEGER" },
 	{ 0x03, "BIT STRING"},
 	{ 0x04, "OCTET STRING" },
@@ -426,72 +427,127 @@ cleanup:
 
 
 int asn1_parse_header(const unsigned char *data, size_t length, asn1_object *asn1){
-	int res = LEGACY_ASN1_PARSING_ERROR;
+	int res = LEGACY_UNKNOWN_ERROR;
 	unsigned pos = 1;
 	long tag = 0, l = 0;
 	unsigned i;
+	unsigned obj_class = 0;
+	bool structured = false;
+	size_t header_length = 0;
+	size_t body_length = 0;
 
 	if (data == NULL || asn1 == NULL || length < 2) {
 		res = LEGACY_INVALID_ARGUMENT;
 		goto cleanup;
 	}
 
-	asn1->obj_class = (data[0] & 0xc0) >> 6;
-	asn1->structured = ((data[0] & 0x20) == 0x20);
+	obj_class = (data[0] & 0xc0) >> 6;
+	structured = ((data[0] & 0x20) == 0x20);
 
 	tag = data[0] & 0x1f;
 
-	/* Tag is longer than 5 bits. */
+	/* Low-tag-number form is used for tag numbers between 0 and 30. */
+	/* High-tag-number form is indicated by 5 least significant bits all set to 1. */
 	if (tag == 0x1f) {
+		/* High-tag-number form is used only for tag numbers 31 and greater. */
+		if (data[pos] < 0x1f) {
+			res = LEGACY_INVALID_FORMAT;
+			goto cleanup;
+		}
 		tag = 0;
 
-		/* While the first bit is set there are more tag bytes following. */
+		/* The tag is specified by the following tag octets, MSB first, base-128 (7 least significant bits are used). */
+		/* The most significant bit of each tag octet, except the last one, is set to 1. */
 		do {
 			if (pos == length) {
+				res = LEGACY_ASN1_PARSING_ERROR;
 				goto cleanup;
 			}
-
-			/* Seven leftmost bits are used. */
-			tag = tag * 128 + data[pos] - 0x80;
-			pos++;
-		} while (data[pos] >= 0x80);
+			/* Tag number must be specified with as few octets as possible (leading zeros are not allowed). */
+			if (tag == 0 && data[pos] == 0x80) {
+				res = LEGACY_INVALID_FORMAT;
+				goto cleanup;
+			}
+			tag = tag * 128 + (data[pos] & 0x7f);
+		} while (data[pos++] & 0x80);
 	}
 
-	asn1->tag = tag;
+	/* DER requires that each universal class type uses a fixed encoding: */
+	if (obj_class == 0) {
+		switch (tag) {
+			/* primitive encoding */
+			case 0x01: /* boolean */
+			case 0x02: /* integer */
+			case 0x03: /* bit string */
+			case 0x04: /* octet string */
+			case 0x05: /* NULL */
+			case 0x06: /* object identifier */
+			case 0x13: /* PrintableString */
+			case 0x14: /* T61String */
+			case 0x16: /* IA5String */
+			case 0x17: /* UTCTime */
+				if (structured) {
+					res = LEGACY_INVALID_FORMAT;
+					goto cleanup;
+				}
+				break;
+			/* constructed encoding */
+			case 0x10: /* sequence */
+			case 0x11: /* set */
+				if (!structured) {
+					res = LEGACY_INVALID_FORMAT;
+					goto cleanup;
+				}
+			break;
+			default:
+				break;
+		}
+	}
 
-	if (data[pos] <= 0x80) {
+	if (data[pos] == 0x80) {
+		/* DER does not allow indefinite-length encoding. */
+		res = LEGACY_INVALID_FORMAT;
+		goto cleanup;
+	} else if (data[pos] < 0x80) {
+		/* Short form: length is given with one octet. Length can be between 0 and 127. */
 		l = data[pos];
 		pos++;
 	} else {
+		/* Long form: length is given with 2 to 127 octets. Length can be between 0 and 2^1008 - 1. */
+		/* The 7 least significant bits of the first octet specify the number of additional length octets. */
 		int bytes = data[pos] & 0x7f;
 		pos++;
 		l = 0;
+		/* The second and following octets specify the length, MSB first, base-256. */
 		for (i = 0; i < bytes; i++) {
+			/* DER requires that length is encoded in the minimum number of octets (leading zeros are not allowed). */
+			if (l == 0 && data[pos] == 0) {
+				res = LEGACY_INVALID_FORMAT;
+				goto cleanup;
+			}
 			l = l * 256 + data[pos];
 			pos++;
 		}
-	}
-
-	asn1->header_length = pos;
-
-	/* The element is terminated by double zero. */
-	if (l == 0x80) {
-		l = 0;
-		while (data[pos + l] != 0 || data[pos + l + 1] != 0) {
-			l += 1;
-			if (pos + l + 1 > length - 1) {
-				goto cleanup;
-			}
+		/* DER requires that short length form is used if length is between 0 and 127. */
+		if (l < 0x80) {
+			res = LEGACY_INVALID_FORMAT;
+			goto cleanup;
 		}
-
-		asn1->body_length = l + 2;
-	} else {
-		asn1->body_length = l;
 	}
 
-	if (asn1->header_length + asn1->body_length > length) {
+	header_length = pos;
+	body_length = l;
+
+	if (header_length + body_length > length) {
+		res = LEGACY_ASN1_PARSING_ERROR;
 		goto cleanup;
 	}
+
+	asn1->tag = tag;
+	asn1->obj_class = obj_class;
+	asn1->structured = structured;
+	asn1->header_length = header_length;
+	asn1->body_length = body_length;
 
 	res = LEGACY_OK;
 
