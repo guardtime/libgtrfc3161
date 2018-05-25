@@ -34,7 +34,7 @@ void asn1_dom_free(asn1_dom *dom);
 int asn1_dom_add_object(asn1_dom *dom, asn1_object *asn1);
 void asn1_dom_dump(asn1_dom *dom);
 int asn1_dom_find_child(const asn1_dom *dom, ASN1POSITION parent, unsigned tag);
-int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent, ASN1POSITION index);
+int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent, ASN1POSITION child_index, ASN1POSITION *index);
 int asn1_dom_get_subobject(const asn1_dom *dom, const char *path, ASN1POSITION *out);
 int asn1_dom_get_subobject_buf(const asn1_dom *dom, const char *path, int skip_header, const unsigned char **ptr, size_t *size);
 int asn1_dom_get_root_buf(const asn1_dom *dom, ASN1POSITION pos, const unsigned char **ptr, size_t *size);
