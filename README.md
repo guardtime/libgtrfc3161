@@ -9,7 +9,7 @@ Guardtime's KSI signatures in their C/C++ based applications .
 
 ### From Source Code
 
-To use `libgtrfc3161`, check out the source code from Github and build it with the `rebuild.sh` script. To build the legacy signature converter SDK, `libksi` and `libksi-devel` (KSI C SDK) packages are needed. `libksi` is available in Guardtime repository or as source code in GitHub: [https://github.com/GuardTime/libksi](https://github.com/GuardTime/libksi).
+To use `libgtrfc3161`, check out the source code from Github and build it with the `rebuild.sh` script. To build the legacy signature converter SDK, `libksi` and `libksi-devel` (KSI C SDK) packages are needed. `libksi` is available in Guardtime repository or as source code, see more at: [https://github.com/GuardTime/libksi](https://github.com/GuardTime/libksi).
 
 To use `libgtrfc3161` in your C/C++ project, link it against the `libksi` and `libgtrfc3161` libraries.
 
