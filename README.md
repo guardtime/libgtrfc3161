@@ -86,9 +86,6 @@ A simple example how to convert a legacy signature:
   KSI_CTX_free(ctx);
 ```
 
-The API full reference is available here:
-[http://guardtime.github.io/libgtrfc3161/](http://guardtime.github.io/libgtrfc3161/).
-
 ## Contributing ##
 
 See CONTRIBUTING.md file.
