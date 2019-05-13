@@ -180,7 +180,7 @@ int asn1_dom_find_child(const asn1_dom *dom, ASN1POSITION parent_index, unsigned
 	if (dom == NULL || dom->objects == NULL) {
 		return -1;
 	}
-	if (parent_index >= dom->used - 1) {
+	if (dom->used == 0 || parent_index >= dom->used - 1) {
 		return -1;
 	}
 
@@ -211,7 +211,7 @@ int asn1_dom_get_child(const asn1_dom *dom, ASN1POSITION parent_index, ASN1POSIT
 		goto cleanup;
 	}
 
-	if (dom->used <= parent_index + 1) {
+	if (dom->used == 0 || dom->used - 1 <= parent_index) {
 		res = LEGACY_ASN1_OBJECT_NOT_FOUND;
 		goto cleanup;
 	}

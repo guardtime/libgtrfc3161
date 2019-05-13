@@ -1,3 +1,5 @@
+(LSC-17) * BUGFIX: Invalid memory access in tests fixed.
+
 Version 1.0
 
 2018-04-17 release(1.0.0)
