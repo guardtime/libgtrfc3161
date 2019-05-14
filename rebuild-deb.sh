@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright 2013-2018 Guardtime, Inc.
+# Copyright 2013-2019 Guardtime, Inc.
 #
 # This file is part of the Guardtime client SDK.
 #
@@ -19,45 +19,4 @@
 # reserves and retains all trademark rights.
 #
 
-set -e
-
-
-# Get version number.
-VER=$(tr -d [:space:] < VERSION)
-ARCH=$(dpkg --print-architecture)
-RELEASE_VERSION="$(lsb_release -is)$(lsb_release -rs | grep -Po "[0-9]{1,3}" | head -1)"
-PKG_VERSION=1
-DEB_DIR=packaging/deb
-
-autoreconf -if
-./configure $conf_args
-make clean
-make dist
-
-
-# Rebuild debian changelog.
-if command  -v dch > /dev/null; then
-  echo "Generating debian changelog..."
-  $DEB_DIR/rebuild_changelog.sh changelog $DEB_DIR/control libgtrfc3161 $DEB_DIR/changelog "1.0:unstable"
-else
-  >&2 echo "Error: Unable to generate Debian changelog file as dch is not installed!"
-  >&2 echo "Install devscripts 'apt-get install devscripts'"
-  exit 1
-fi
-
-tar xvfz libgtrfc3161-$VER.tar.gz
-mv libgtrfc3161-$VER.tar.gz libgtrfc3161-$VER.orig.tar.gz
-mkdir libgtrfc3161-$VER/debian
-cp $DEB_DIR/control $DEB_DIR/changelog $DEB_DIR/rules $DEB_DIR/copyright libgtrfc3161-$VER/debian
-chmod +x libgtrfc3161-$VER/debian/rules
-cd libgtrfc3161-$VER
-debuild -us -uc
-cd ..
-
-suffix=${VER}-${PKG_VERSION}.${RELEASE_VERSION}_${ARCH}
-mv libgtrfc3161_${VER}_${ARCH}.changes libgtrfc3161_$suffix.changes
-mv libgtrfc3161_${VER}_${ARCH}.deb libgtrfc3161_$suffix.deb
-mv libgtrfc3161-dev_${VER}_${ARCH}.deb libgtrfc3161-dev_$suffix.deb
-
-rm -rf libgtrfc3161-$VER
-
+./rebuild.sh --build-deb $*

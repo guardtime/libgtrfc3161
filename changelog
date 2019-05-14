@@ -1,3 +1,5 @@
+(LSC-18) * IMPROVEMENT: Script rebuild.sh changed to main build script that is called from the others.
+(LSC-18) * IMPROVEMENT: Script rebuild.sh is more flexible (see rebuild.sh -h).
 (LSC-17) * BUGFIX: Invalid memory access in tests fixed.
 
 Version 1.0
