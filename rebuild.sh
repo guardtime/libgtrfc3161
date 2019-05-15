@@ -295,6 +295,7 @@ if $do_build_rpm || $do_build_deb; then
 		suffix=${version}-${PKG_VERSION}.${RELEASE_VERSION}_${ARCH}
 		mv libgtrfc3161_${version}_${ARCH}.changes libgtrfc3161_$suffix.changes
 		mv libgtrfc3161_${version}_${ARCH}.deb libgtrfc3161_$suffix.deb
+		mv libgtrfc3161-dev_${version}_${ARCH}.deb libgtrfc3161-dev_$suffix.deb
 
 		rm -rf libgtrfc3161-$version
 	else
