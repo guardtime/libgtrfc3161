@@ -96,7 +96,7 @@ lib-dev-build: build
 	$(MAKE) install DESTDIR=$(FAKE_INSTALL)
 
 	rm $(FAKE_INSTALL)/$(INSTALL_LIB)/*.so*
-	rm $(FAKE_INSTALL)/$(INSTALL_DOC)/$(package)/changelog $(FAKE_INSTALL)/$(INSTALL_DOC)/$(package)/license*
+	rm $(FAKE_INSTALL)/$(INSTALL_DOC)/$(package)/changelog $(FAKE_INSTALL)/$(INSTALL_DOC)/$(package)/LICENSE*
 	if [ -d doc/html ]; then cp -r doc/html $(FAKE_INSTALL)/$(INSTALL_DOC)/$(package); fi
 	
 	# Generate the binary control file from source control.
