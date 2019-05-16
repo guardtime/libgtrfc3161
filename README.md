@@ -5,9 +5,9 @@ Guardtime's KSI Blockchain is an industrial scale blockchain platform that crypt
 `libgtrfc3161` is a software development kit for developers who want to convert Guardtime's legacy signatures to
 Guardtime's KSI signatures in their C/C++ based applications .
 
-## Installation ##
+## Installation
 
-## Latest Release from Guardtime Repository
+### Latest Release from Guardtime Repository
 
 In order to install the `libgtrfc3161` on CentOS/RHEL:
 
@@ -26,7 +26,7 @@ sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.fc26.repo
 yum install libgtrfc3161
 ```
 
-In order to install the `libgtrfc3161` on Debian / Ubuntu:
+In order to install the `libgtrfc3161` on Debian/Ubuntu:
 
 ```
 # Add Guardtime pgp key.
@@ -42,7 +42,8 @@ sudo apt update
 apt-get install libgtrfc3161
 ```
 
-In order to install the `libgtrfc3161` on OS X:
+In order to install the `libgtrfc3161` on macOS:
+
 ```
 brew tap guardtime/ksi
 brew install libgtrfc3161
@@ -54,9 +55,10 @@ To use `libgtrfc3161`, check out the source code from Github and build it with t
 
 To use `libgtrfc3161` in your C/C++ project, link it against the `libksi` and `libgtrfc3161` libraries.
 
-## Usage ##
+## Usage
 
 A simple example how to convert a legacy signature:
+
 ```C
   #include <ksi/ksi.h>
   #include <gtrfc3161/tsconvert.h>
@@ -94,23 +96,25 @@ A simple example how to convert a legacy signature:
   KSI_CTX_free(ctx);
 ```
 
-## Contributing ##
+## Contributing
 
 See CONTRIBUTING.md file.
 
-## License ##
+## License
 
 See LICENSE file.
 
-## Dependencies ##
-| Dependency        | Version                           | License type | Source                         | Notes |
-| :---              | :---                              | :---         | :---                           |:---   |
-| libksi            | >= 3.10 | Apache 2.0   | https://github.com/GuardTime/libksi       |  |
-| CuTest            | 1.5                               | Zlib         |                                | Required only for testing. |
+## Dependencies
 
-## Compatibility ##
-| OS / Platform                              | Compatibility                                |
-| :---                                       | :---                                         |
+| Dependency | Version | License type | Source                              | Notes |
+| :----------| :-------| :------------| :-----------------------------------|:------|
+| libksi     | >= 3.10 | Apache 2.0   | https://github.com/GuardTime/libksi |       |
+| CuTest     | 1.5     | Zlib         |                                     | Required only for testing. |
+
+## Compatibility
+
+| OS/Platform                                | Compatibility                                 |
+| :------------------------------------------| :---------------------------------------------|
 | CentOS / RHEL 6 and 7, x86_64 architecture | Fully compatible and tested.                  |
 | Debian, ...                                | Compatible but not tested on a regular basis. |
 | macOS                                      | Compatible but not tested on a regular basis. |
