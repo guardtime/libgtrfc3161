@@ -7,6 +7,47 @@ Guardtime's KSI signatures in their C/C++ based applications .
 
 ## Installation ##
 
+## Latest Release from Guardtime Repository
+
+In order to install the `libgtrfc3161` on CentOS/RHEL:
+
+```
+cd /etc/yum.repos.d
+
+# In case of RHEL / CentOS 6
+sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.el6.repo
+
+# In case of RHEL / CentOS 7
+sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.el7.repo
+
+# In case of Fedora 26
+sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.fc26.repo
+
+yum install libgtrfc3161
+```
+
+In order to install the `libgtrfc3161` on Debian / Ubuntu:
+
+```
+# Add Guardtime pgp key.
+sudo curl http://download.guardtime.com/ksi/GUARDTIME-GPG-KEY | sudo apt-key add -
+
+# In case of Ubuntu 16 (Xenial)
+sudo curl -o /etc/apt/sources.list.d/guardtime.list http://download.guardtime.com/ksi/configuration/guardtime.xenial.list
+
+# In case of Debian 9 (Stretch)
+sudo curl -o /etc/apt/sources.list.d/guardtime.list http://download.guardtime.com/ksi/configuration/guardtime.stretch.list
+
+sudo apt update
+apt-get install libgtrfc3161
+```
+
+In order to install the `libgtrfc3161` on OS X:
+```
+brew tap guardtime/ksi
+brew install libgtrfc3161
+```
+
 ### From Source Code
 
 To use `libgtrfc3161`, check out the source code from Github and build it with the `rebuild.sh` script. To build the legacy signature converter SDK, `libksi` and `libksi-devel` (KSI C SDK) packages are needed. `libksi` is available in Guardtime repository or as source code, see more at: [https://github.com/GuardTime/libksi](https://github.com/GuardTime/libksi).
@@ -31,7 +72,7 @@ A simple example how to convert a legacy signature:
   fread(in_buf, 1, in_size, in_file);
 
   /* Convert signature. */
-	KSI_CTX *ctx = NULL;
+  KSI_CTX *ctx = NULL;
   KSI_CTX_new(&ctx);
   KSI_Signature *ksi_signature = NULL;
   convert_signature(ctx, in_buf, in_size, &ksi_signature);
@@ -53,8 +94,6 @@ A simple example how to convert a legacy signature:
   KSI_CTX_free(ctx);
 ```
 
-The API full reference is available here [http://guardtime.github.io/libgtrfc3161/](http://guardtime.github.io/libgtrfc3161/).
-
 ## Contributing ##
 
 See CONTRIBUTING.md file.
@@ -74,3 +113,4 @@ See LICENSE file.
 | :---                                       | :---                                         |
 | CentOS / RHEL 6 and 7, x86_64 architecture | Fully compatible and tested.                  |
 | Debian, ...                                | Compatible but not tested on a regular basis. |
+| macOS                                      | Compatible but not tested on a regular basis. |
