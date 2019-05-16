@@ -2,7 +2,6 @@
 (LSC-18) * IMPROVEMENT: Script rebuild.sh is more flexible (see rebuild.sh -h).
 (LSC-20) * IMPROVEMENT: New file ABI_VERSION for specifying library binary interface version.
 (LSC-21) * IMPROVEMENT: File license renamed to LICENSE.
-(LSC-21) * IMPROVEMENT: rebuild.sh runs tests.
 (LSC-21) * IMPROVEMENT: New script mkversion.sh to automate software version generation.
 (LSC-17) * BUGFIX: Invalid memory access in tests fixed.
 (LSC-19) * BUGFIX: A false positive uninitialized value usage failure fixed in tests by refactoring.

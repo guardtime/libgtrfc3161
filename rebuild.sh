@@ -248,7 +248,6 @@ echo ""
 autoreconf -if
 ./configure $conf_args
 make $make_args clean
-make $make_args test
 
 # Package the software.
 if $do_build_rpm || $do_build_deb; then
