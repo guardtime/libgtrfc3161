@@ -19,7 +19,7 @@
 
 AM_CFLAGS=-g -Wall -I$(top_builddir)/src/gtrfc3161
 AM_LDFLAGS=-L$(top_builddir)/src/gtrfc3161 -no-install -lgtrfc3161 -lksi
-check_PROGRAMS=runner integration-runner
+check_PROGRAMS=runner
 
 runner_SOURCES= \
 	cutest/CuTest.c \
@@ -29,26 +29,6 @@ runner_SOURCES= \
 	test_unit_all.c \
 	test_unit_all.h \
 	test_unit_asn.c
-
-integration_runner_SOURCES= \
-	cutest/CuTest.c \
-	cutest/CuTest.h \
-	support_tests.c \
-	support_tests.h \
-	test_integration_all.c \
-	test_integration_all.h
-
-if FULL_TEST_COVERAGE
-check_PROGRAMS+= malloc-runner
-malloc_runner_LDFLAGS=-L$(top_builddir)/src/gtrfc3161 -no-install -lgtrfc3161mlc -lksi
-malloc_runner_SOURCES= \
-	cutest/CuTest.c \
-	cutest/CuTest.h \
-	support_tests.c \
-	support_tests.h \
-	test_malloc_all.c \
-	test_malloc_all.h
-endif #FULL_TEST_COVERAGE
 
 clean-local:
 	rm -fr *.gcda *.gcno
