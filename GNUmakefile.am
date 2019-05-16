@@ -23,12 +23,12 @@ AUTOMAKE_OPTIONS = foreign
 SUBDIRS = src/gtrfc3161 src/example test doc
 
 docdir = ${datadir}/doc/${PACKAGE}
-dist_doc_DATA = changelog license
+dist_doc_DATA = changelog LICENSE
 
 pkgconfigdir = ${libdir}/pkgconfig
 pkgconfig_DATA = libgtrfc3161.pc
 
-EXTRA_DIST = VERSION ABI_VERSION changelog build-linux  license \
+EXTRA_DIST = VERSION ABI_VERSION changelog build-linux  LICENSE \
 		doc/doxy* test/* packaging/rpm/libgtrfc3161.spec
 
 ZIPDOC_DIR = ${PACKAGE}-${VERSION}-htmldoc
