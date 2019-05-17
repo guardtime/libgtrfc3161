@@ -1,14 +1,18 @@
-(LSC-18) * IMPROVEMENT: Script rebuild.sh changed to main build script that is called from the others.
-(LSC-18) * IMPROVEMENT: Script rebuild.sh is more flexible (see rebuild.sh -h).
-(LSC-20) * IMPROVEMENT: New file ABI_VERSION for specifying library binary interface version.
-(LSC-21) * IMPROVEMENT: File license renamed to LICENSE.
-(LSC-21) * IMPROVEMENT: New script mkversion.sh to automate software version generation.
-(LSC-21) * IMPROVEMENT: Empty tests removed from project.
-(LSC-17) * BUGFIX: Invalid memory access in tests fixed.
-(LSC-19) * BUGFIX: A false positive uninitialized value usage failure fixed in tests by refactoring.
+Version 1.1
+
+2019-05-17 1.1.78
+
+* IMPROVEMENT: Script rebuild.sh changed to main build script that is called from the others.
+* IMPROVEMENT: Script rebuild.sh is more flexible (see rebuild.sh -h).
+* IMPROVEMENT: New file ABI_VERSION for specifying library binary interface version.
+* IMPROVEMENT: File license renamed to LICENSE.
+* IMPROVEMENT: New script mkversion.sh to automate software version generation.
+* IMPROVEMENT: Empty tests removed from project.
+* BUGFIX: Invalid memory access in tests fixed.
+* BUGFIX: A false positive uninitialized value usage failure fixed in tests by refactoring.
 
 Version 1.0
 
-2018-04-17 release(1.0.0)
+2018-04-17 1.0.0
 
 * FEATURE: First version.
