@@ -1,41 +1,64 @@
 # libgtrfc3161 #
-Guardtime Keyless Signature Infrastructure (KSI) is an industrial scale blockchain platform that cryptographically
-ensures data integrity and proves time of existence. Its keyless signatures, based on hash chains, link data to global
-calendar blockchain. The checkpoints of the blockchain, published in newspapers and electronic media, enable long term
-integrity of any digital asset without the need to trust any system. There are many applications for KSI, a classical
-example is signing of any type of logs - system logs, financial transactions, call records, etc. For more,
-see [https://guardtime.com](https://guardtime.com).
+
+Guardtime's KSI Blockchain is an industrial scale blockchain platform that cryptographically ensures data integrity and proves time of existence. The KSI signatures, based on hash chains, link data to this global calendar blockchain. The checkpoints of the blockchain, published in newspapers and electronic media, enable long term integrity of any digital asset without the need to trust any system. There are many applications for KSI, a classical example is signing of any type of logs - system logs, financial transactions, call records, etc. For more, see [https://guardtime.com](https://guardtime.com).
 
 `libgtrfc3161` is a software development kit for developers who want to convert Guardtime's legacy signatures to
 Guardtime's KSI signatures in their C/C++ based applications .
 
-## Installation ##
+## Installation
 
 ### Latest Release from Guardtime Repository
 
-In order to install the `libgtrfc3161` CentOS/RHEL packages directly from the Guardtime public repository, download and save the repository configuration to the `/etc/yum.repos.d/` folder:
+In order to install the `libgtrfc3161` on CentOS/RHEL:
 
 ```
 cd /etc/yum.repos.d
 
-# In case of RHEL/CentOS 6
+# In case of RHEL / CentOS 6
 sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.el6.repo
 
-# In case of RHEL/CentOS 7
+# In case of RHEL / CentOS 7
 sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.el7.repo
+
+# In case of Fedora 26
+sudo curl -O http://download.guardtime.com/ksi/configuration/guardtime.fc26.repo
 
 yum install libgtrfc3161
 ```
 
+In order to install the `libgtrfc3161` on Debian/Ubuntu:
+
+```
+# Add Guardtime pgp key.
+sudo curl http://download.guardtime.com/ksi/GUARDTIME-GPG-KEY | sudo apt-key add -
+
+# In case of Ubuntu 16 (Xenial)
+sudo curl -o /etc/apt/sources.list.d/guardtime.list http://download.guardtime.com/ksi/configuration/guardtime.xenial.list
+
+# In case of Debian 9 (Stretch)
+sudo curl -o /etc/apt/sources.list.d/guardtime.list http://download.guardtime.com/ksi/configuration/guardtime.stretch.list
+
+sudo apt update
+apt-get install libgtrfc3161
+```
+
+In order to install the `libgtrfc3161` on macOS:
+
+```
+brew tap guardtime/ksi
+brew install libgtrfc3161
+```
+
 ### From Source Code
 
-If the latest version is needed or the package is not available for the platform you are using, check out the source code from Github and build it with the `rebuild.sh` script. To build the legacy signature converter SDK, `libksi` and `libksi-devel` (KSI C SDK) packages are needed. `libksi` is available in Guardtime repository or as source code in GitHub: [https://github.com/GuardTime/libksi](https://github.com/GuardTime/libksi).
+To use `libgtrfc3161`, check out the source code from Github and build it with the `rebuild.sh` script. To build the legacy signature converter SDK, `libksi` and `libksi-devel` (KSI C SDK) packages are needed. `libksi` is available in Guardtime repository or as source code, see more at: [https://github.com/GuardTime/libksi](https://github.com/GuardTime/libksi).
 
-To use libgtrfc3161 in your C/C++ project, link it against the `libksi` and `libgtrfc3161` libraries.
+To use `libgtrfc3161` in your C/C++ project, link it against the `libksi` and `libgtrfc3161` libraries.
 
-## Usage ##
+## Usage
 
 A simple example how to convert a legacy signature:
+
 ```C
   #include <ksi/ksi.h>
   #include <gtrfc3161/tsconvert.h>
@@ -51,7 +74,7 @@ A simple example how to convert a legacy signature:
   fread(in_buf, 1, in_size, in_file);
 
   /* Convert signature. */
-	KSI_CTX *ctx = NULL;
+  KSI_CTX *ctx = NULL;
   KSI_CTX_new(&ctx);
   KSI_Signature *ksi_signature = NULL;
   convert_signature(ctx, in_buf, in_size, &ksi_signature);
@@ -73,24 +96,25 @@ A simple example how to convert a legacy signature:
   KSI_CTX_free(ctx);
 ```
 
-The API full reference is available here [http://guardtime.github.io/libgtrfc3161/](http://guardtime.github.io/libgtrfc3161/).
-
-## Contributing ##
+## Contributing
 
 See CONTRIBUTING.md file.
 
-## License ##
+## License
 
 See LICENSE file.
 
-## Dependencies ##
-| Dependency        | Version                           | License type | Source                         | Notes |
-| :---              | :---                              | :---         | :---                           |:---   |
-| libksi            | >= 3.10 | Apache 2.0   | https://github.com/GuardTime/libksi       |  |
-| CuTest            | 1.5                               | Zlib         |                                | Required only for testing. |
+## Dependencies
 
-## Compatibility ##
-| OS / Platform                              | Compatibility                                |
-| :---                                       | :---                                         |
+| Dependency | Version | License type | Source                              | Notes |
+| :----------| :-------| :------------| :-----------------------------------|:------|
+| libksi     | >= 3.10 | Apache 2.0   | https://github.com/GuardTime/libksi |       |
+| CuTest     | 1.5     | Zlib         |                                     | Required only for testing. |
+
+## Compatibility
+
+| OS/Platform                                | Compatibility                                 |
+| :------------------------------------------| :---------------------------------------------|
 | CentOS / RHEL 6 and 7, x86_64 architecture | Fully compatible and tested.                  |
 | Debian, ...                                | Compatible but not tested on a regular basis. |
+| macOS                                      | Compatible but not tested on a regular basis. |

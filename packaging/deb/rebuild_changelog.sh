@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright 2013-2018 Guardtime, Inc.
+# Copyright 2013-2017 Guardtime, Inc.
 #
 # This file is part of the Guardtime client SDK.
 #
@@ -67,7 +67,7 @@ set -e
     echo "  Rebuild changelog so that every release is marked as default distribution (unstable):"
     echo "    rebuild_changelog.sh changelog packaging/deb/control packaging/deb/changelog"
     echo ""
-    echo "  Rebuild changelog so that some of the first releases are not included (as the release" 
+    echo "  Rebuild changelog so that some of the first releases are not included (as the release"
     echo "  were never made under debian):"
     echo "    rebuild_changelog.sh changelog packaging/deb/control packaging/deb/changelog"
     echo "    '0.0.32:UNRELEASED 1.0.0:unstable'"
@@ -86,7 +86,7 @@ rm -fr $tmpdir
 # It is not possible to specify control file from command-line.
 mkdir -p $tmpdir/debian
 cp $controlpath $tmpdir/debian
-rela_changelog_path=$(realpath $chlogpath)
+full_changelog_path=$(realpath $chlogpath)
 cd $tmpdir
 
 
@@ -100,7 +100,7 @@ array=()
 while read line; do
   # Look for the line that contains The Release.
   # If it's not release, it must be release content.
-  if [[ $line =~ ([0-9]{1,4}[-][0-9]{1,2}[-][0-9]{1,2}).*release.*[(](.*)[)] ]] ; then
+  if [[ $line =~ ([0-9]{1,4}[-][0-9]{1,2}[-][0-9]{1,2}).*([0-9]{1,2}[.][0-9]{1,3}[.][0-9]{1,5}[a]*).* ]] ; then
     time_string=$(date -R -d "${BASH_REMATCH[1]}")
     version_str="${BASH_REMATCH[2]}"
 
@@ -114,7 +114,7 @@ while read line; do
         else
             is_unreleased=false
         fi
-        
+
         echo "  * Changing distribution to: $dist."
       fi
     done;
@@ -134,7 +134,7 @@ while read line; do
 
         # Append release record.
         for ((i=${#array[@]}-2; i>=0; i--)); do
-          dch -a --nomultimaint --controlmaint "${array[$i]}"
+          dch -a --nomultimaint --controlmaint -- "${array[$i]}"
         done
 
         # Make a release, change time.
@@ -149,7 +149,7 @@ while read line; do
   elif [[ $line == \** ]] ; then
     array+=("${line:2}")
   fi
-done <<< "$(tac -r $rela_changelog_path)"
+done <<< "$(tac -r $full_changelog_path)"
 
 cd ..
 cp $tmpdir/debian/changelog $outputpath

@@ -89,7 +89,14 @@ static void Test_Asn1_Dom_add_object(CuTest* tc) {
 		CuAssert(tc, "Unable to add ASN object.", res == LEGACY_OK);
 	}
 	for (i = 0; i < len; i++) {
-		CuAssert(tc, "ASN objects not properly added.", !memcmp(&obj[i], &dom->objects[i], sizeof(asn1_object)));
+		/* To make valgrind happy compare each value instead of memory blobs that contain uninitialized padding bytes. */
+		CuAssert(tc, "ASN objects Body length does not match.", obj[i].body_length == dom->objects[i].body_length);
+		CuAssert(tc, "ASN objects Header length does not match.", obj[i].header_length == dom->objects[i].header_length);
+		CuAssert(tc, "ASN objects level does not match.", obj[i].level == dom->objects[i].level);
+		CuAssert(tc, "ASN objects obj class does not match.", obj[i].obj_class == dom->objects[i].obj_class);
+		CuAssert(tc, "ASN objects offset does not match.", obj[i].offset == dom->objects[i].offset);
+		CuAssert(tc, "ASN objects structured does not match.", obj[i].structured == dom->objects[i].structured);
+		CuAssert(tc, "ASN objects tag does not match.", obj[i].tag == dom->objects[i].tag);
 	}
 	asn1_dom_free(dom);
 }

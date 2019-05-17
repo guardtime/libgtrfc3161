@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# Copyright 2013-2018 Guardtime, Inc.
+# Copyright 2013-2019 Guardtime, Inc.
 #
 # This file is part of the Guardtime client SDK.
 #
@@ -19,18 +19,4 @@
 # reserves and retains all trademark rights.
 #
 
-BUILD_DIR=~/rpmbuild
-version=$(tr -d [:space:] <VERSION)
-
-autoreconf -if && \
-./configure $* && \
-make clean && \
-make dist && \
-mkdir -p $BUILD_DIR/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp} && \
-cp packaging/rpm/libgtrfc3161.spec $BUILD_DIR/SPECS/ && \
-cp libgtrfc3161-*.tar.gz $BUILD_DIR/SOURCES/ && \
-rpmbuild -ba $BUILD_DIR/SPECS/libgtrfc3161.spec && \
-cp $BUILD_DIR/RPMS/*/libgtrfc3161-*$version*.rpm . && \
-cp $BUILD_DIR/SRPMS/libgtrfc3161-*$version*.rpm . && \
-chmod -v 644 *.rpm
-
+./rebuild.sh --build-rpm $*
