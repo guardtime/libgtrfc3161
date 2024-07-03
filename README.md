@@ -14,14 +14,14 @@ In order to install the `libgtrfc3161` on CentOS/RHEL:
 ```
 cd /etc/yum.repos.d
 
-# In case of RHEL / CentOS 6
-sudo curl -O https://download.guardtime.com/ksi/configuration/guardtime.el6.repo
-
-# In case of RHEL / CentOS 7
+# In case of RHEL/CentOS 7
 sudo curl -O https://download.guardtime.com/ksi/configuration/guardtime.el7.repo
 
-# In case of Fedora 26
-sudo curl -O https://download.guardtime.com/ksi/configuration/guardtime.fc26.repo
+# In case of RHEL/CentOS 8
+sudo curl -O https://download.guardtime.com/ksi/configuration/guardtime.el8.repo
+
+# In case of RHEL/CentOS 9
+sudo curl -O https://download.guardtime.com/ksi/configuration/guardtime.el9.repo
 
 yum install libgtrfc3161
 ```
@@ -30,13 +30,10 @@ In order to install the `libgtrfc3161` on Debian/Ubuntu:
 
 ```
 # Add Guardtime pgp key.
-sudo curl https://download.guardtime.com/ksi/GUARDTIME-GPG-KEY | sudo apt-key add -
+sudo curl https://download.guardtime.com/ksi/GUARDTIME-GPG-KEY-2 | sudo apt-key add -
 
-# In case of Ubuntu 16 (Xenial)
-sudo curl -o /etc/apt/sources.list.d/guardtime.list https://download.guardtime.com/ksi/configuration/guardtime.xenial.list
-
-# In case of Debian 9 (Stretch)
-sudo curl -o /etc/apt/sources.list.d/guardtime.list https://download.guardtime.com/ksi/configuration/guardtime.stretch.list
+# In case of Debian 12 (Bookworm)
+sudo curl -o /etc/apt/sources.list.d/guardtime.list https://download.guardtime.com/ksi/configuration/guardtime.bookworm.list
 
 sudo apt update
 apt-get install libgtrfc3161
@@ -115,6 +112,8 @@ See LICENSE file.
 
 | OS/Platform                                | Compatibility                                 |
 | :------------------------------------------| :---------------------------------------------|
-| CentOS / RHEL 6 and 7, x86_64 architecture | Fully compatible and tested.                  |
-| Debian, ...                                | Compatible but not tested on a regular basis. |
-| macOS                                      | Compatible but not tested on a regular basis. |
+| CentOS/RHEL 7,8,9, x86_64 architecture     | Fully compatible and tested.                 |
+| Debian 12+                                 | Fully compatible and tested.                 |
+| Ubuntu                                     | Compatible but not tested on regular basis.  |
+| OS X                                       | Compatible but not tested on regular basis.  |
+| Windows 7, 8, 10, 11                       | Compatible but not tested on a regular basis. Build combination of `DLL=dll` and `RTL=MT(d)` not supported. |
